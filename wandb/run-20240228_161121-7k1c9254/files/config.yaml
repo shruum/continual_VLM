@@ -1,0 +1,147 @@
+wandb_version: 1
+
+seed:
+  desc: null
+  value: null
+notes:
+  desc: null
+  value: null
+non_verbose:
+  desc: null
+  value: 0
+disable_log:
+  desc: null
+  value: 0
+tensorboard:
+  desc: null
+  value: 0
+validation:
+  desc: null
+  value: 0
+ignore_other_metrics:
+  desc: null
+  value: 0
+debug_mode:
+  desc: null
+  value: 0
+nowand:
+  desc: null
+  value: 0
+wandb_entity:
+  desc: null
+  value: regaz
+wandb_project:
+  desc: null
+  value: mammoth
+experiment_id:
+  desc: null
+  value: '20240228_161114_188351'
+dataset_dir:
+  desc: null
+  value: data
+output_dir:
+  desc: null
+  value: experiments
+dataset:
+  desc: null
+  value: seq-cifar10
+mnist_seed:
+  desc: null
+  value: 0
+n_tasks_cif:
+  desc: null
+  value: 5
+n_tasks_mnist:
+  desc: null
+  value: 20
+deg_inc:
+  desc: null
+  value: 8
+model:
+  desc: null
+  value: vl_er
+lr:
+  desc: null
+  value: 0.1
+optim_wd:
+  desc: null
+  value: 0.0
+optim_mom:
+  desc: null
+  value: 0.0
+optim_nesterov:
+  desc: null
+  value: 0
+n_epochs:
+  desc: null
+  value: 50
+batch_size:
+  desc: null
+  value: 32
+buffer_size:
+  desc: null
+  value: 200
+minibatch_size:
+  desc: null
+  value: 32
+aux:
+  desc: null
+  value: shape
+img_size:
+  desc: null
+  value: 32
+loss_type:
+  desc: null
+  value:
+  - l2
+loss_wt:
+  desc: null
+  value:
+  - 1.0
+  - 1.0
+  - 1.0
+  - 1.0
+dir_aux:
+  desc: null
+  value: false
+buf_aux:
+  desc: null
+  value: false
+aug_prob:
+  desc: null
+  value: 0.0
+data_combine:
+  desc: null
+  value: false
+conf_jobnum:
+  desc: null
+  value: 35345948-9c39-4aa3-808d-3692708c6686
+conf_timestamp:
+  desc: null
+  value: '2024-02-28 16:11:14.190051'
+conf_host:
+  desc: null
+  value: nides068
+_wandb:
+  desc: null
+  value:
+    python_version: 3.10.12
+    cli_version: 0.16.1
+    framework: torch
+    is_jupyter_run: false
+    is_kaggle_kernel: false
+    start_time: 1709133081.355729
+    t:
+      1:
+      - 1
+      - 41
+      - 51
+      - 55
+      3:
+      - 16
+      - 23
+      4: 3.10.12
+      5: 0.16.1
+      8:
+      - 5
+      13: linux-x86_64

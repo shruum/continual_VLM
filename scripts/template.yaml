@@ -1,0 +1,100 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: shruthi-clmm
+  namespace: cyber-security-gpu
+  labels:
+    username: shruthi.gowda
+    team: cyber-security
+    project: safexplain
+spec:
+  ttlSecondsAfterFinished: 604800
+  activeDeadlineSeconds: 1209600
+  template:
+    spec:
+      tolerations:
+        - key: it
+          operator: Equal
+          value: test
+          effect: NoExecute
+      securityContext:
+        runAsUser: 10026
+      containers:
+### JOB CONTAINER POD
+      - name: neurai
+        image: docker-development.navinfo.eu/navinfo/research/aicv/neurai:transformer2
+        imagePullPolicy: IfNotPresent
+        resources:
+          requests:
+            memory: "48000Mi"
+            cpu: 32000m
+          limits:
+            memory: "48000Mi"
+            cpu: 32000m
+        command: ["/bin/bash"]
+        args: ["-c","python /git/continual_learning/noisy_learning/main.py  \
+        experiments.ntasks=10 \
+        path.data=data \
+        path.checkpoint=/output/cl_w_rkd/
+        --config /git/continual_learning/RRR/configs/cifar_cil_rrr_kd_sp_v2.yaml
+"]
+        volumeMounts:
+        - name: git-volume
+          mountPath: /git
+        - name: input
+          mountPath: /input
+        - name: output
+          mountPath: /output
+        - name: dshm
+          mountPath: /dev/shm
+      restartPolicy: Never
+      imagePullSecrets:
+        - name: docker-credentials
+#      nodeSelector:
+#        gpu-servers: cpu-prod
+#        gpu-memory: 32GB
+### INIT CONTAINER POD
+      initContainers:
+      - name: git-clone
+        image: alpine/git
+        resources:
+          requests:
+            memory: "48000Mi"
+            cpu: 32000m
+          limits:
+            memory: "48000Mi"
+            cpu: 32000m
+        args:
+          - clone
+          - -b
+          - feature/ARL-3022-cl_xai
+          - https://$(BITBUCKET_USER):$(BITBUCKET_PASS)@bitbucket.cms.navinfo.cloud/scm/arl/nie_continual_learning.git
+          - /git
+        env:
+          - name: BITBUCKET_USER
+            valueFrom:
+              secretKeyRef:
+               name: bitbucket-credentials
+               key: username
+          - name: BITBUCKET_PASS
+            valueFrom:
+              secretKeyRef:
+               name: bitbucket-credentials
+               key: password
+        volumeMounts:
+        - name: git-volume
+          mountPath: /git
+      volumes:
+      - name: git-volume
+        emptyDir: {}
+      - name: input
+        nfs:
+          server: 10.66.0.40
+          path: /input/datasets
+      - name: output
+        nfs:
+          server: 10.66.0.40
+          path: /output/shruthi.gowda/xai_cl
+      - name: dshm
+        emptyDir:
+          medium: Memory
