@@ -1,26 +1,26 @@
-<p align="center">
-  <img width="230" height="230" src="src/logo.png" alt="logo">
-</p>
+# Continual Learning using Vision Language Tasks
 
-# Mammoth - An Extendible (General) Continual Learning Framework for Pytorch
+## Running
 
-## NEWS
+```
+buffer_size = 200 (or 500)
+python main.py 
+    --experiment_id vl_er_exp \
+    --seed 0 \
+    --model vl_er \
+    --dataset seq-cifar10 \
+    --buffer_size {buffer_size} \
+    --lr 0.1 \
+    --n_epochs 50 \
+    --batch_size 32 \
+    --minibatch_size 32 \
+    --output_dir /output/ \
+    --loss_mode l2 \ (or nce)
+    --loss_wt 1 1 1 1 \
+    --tensorboard \
+    --csv_log \
+```
 
-**STAY TUNED:** The additional code for the MiniImagenet and NTU-60 experiments will be uploaded soon due to complications in the distribution of datasets.
-
------------------------------
-
-
-Official repository of [Class-Incremental Continual Learning into the eXtended DER-verse](https://arxiv.org/abs/2201.00766) and [Dark Experience for General Continual Learning: a Strong, Simple Baseline](https://papers.nips.cc/paper/2020/hash/b704ea2c39778f07c617f6b7ce480e9e-Abstract.html)
-
-<p align="center">
-  <img width="112" height="112" src="src/seq_mnist.gif" alt="Sequential MNIST">
-  <img width="112" height="112" src="src/seq_cifar10.gif" alt="Sequential CIFAR-10">
-  <img width="112" height="112" src="src/seq_tinyimg.gif" alt="Sequential TinyImagenet">
-  <img width="112" height="112" src="src/perm_mnist.gif" alt="Permuted MNIST">
-  <img width="112" height="112" src="src/rot_mnist.gif" alt="Rotated MNIST">
-  <img width="112" height="112" src="src/mnist360.gif" alt="MNIST-360">
-</p>
 
 ## Setup
 
@@ -73,29 +73,3 @@ Official repository of [Class-Incremental Continual Learning into the eXtended D
 
 + MNIST-360
 
-## Citing these works
-
-```
-@article{boschini2022class,
-  title={Class-Incremental Continual Learning into the eXtended DER-verse},
-  author={Boschini, Matteo and Bonicelli, Lorenzo and Buzzega, Pietro and Porrello, Angelo and Calderara, Simone},
-  journal={IEEE Transactions on Pattern Analysis and Machine Intelligence},
-  year={2022},
-  publisher={IEEE}
-}
-
-@inproceedings{buzzega2020dark,
- author = {Buzzega, Pietro and Boschini, Matteo and Porrello, Angelo and Abati, Davide and Calderara, Simone},
- booktitle = {Advances in Neural Information Processing Systems},
- editor = {H. Larochelle and M. Ranzato and R. Hadsell and M. F. Balcan and H. Lin},
- pages = {15920--15930},
- publisher = {Curran Associates, Inc.},
- title = {Dark Experience for General Continual Learning: a Strong, Simple Baseline},
- volume = {33},
- year = {2020}
-}
-```
-
-## Previous versions
-
-If you're interested in a version of this repo that only includes the code for [Dark Experience for General Continual Learning: a Strong, Simple Baseline](https://papers.nips.cc/paper/2020/hash/b704ea2c39778f07c617f6b7ce480e9e-Abstract.html), please use our [neurips2020 tag](https://github.com/aimagelab/mammoth/releases/tag/neurips2020).
