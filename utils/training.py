@@ -23,6 +23,9 @@ import numpy as np
 # except ImportError:
 #     wandb = None
 
+IMAGE_TOKEN = "<image>"
+NUM_IMAGE_TOKENS = 2
+
 def mask_classes(outputs: torch.Tensor, dataset: ContinualDataset, k: int) -> None:
     """
     Given the output tensor, the dataset at hand and the current task,
@@ -78,6 +81,16 @@ def evaluate(model: ContinualModel, dataset: ContinualDataset, last=False) -> Tu
     model.net.train(status)
     return accs, accs_mask_classes
 
+def get_tokens(model, inputs):
+    I = model.model.tokenizer.convert_tokens_to_ids(IMAGE_TOKEN)
+    input_ids = [I for i in range(NUM_IMAGE_TOKENS)] + inputs['input_ids']
+    attention_mask = [1 for i in range(NUM_IMAGE_TOKENS)] + inputs['attention_mask']
+    return {
+        'input_ids': torch.tensor(input_ids).unsqueeze(0),
+        'attention_mask': torch.tensor(attention_mask).unsqueeze(0),
+    }
+
+
 
 def train(model: ContinualModel, dataset: ContinualDataset,
           args: Namespace) -> None:
@@ -116,6 +129,8 @@ def train(model: ContinualModel, dataset: ContinualDataset,
             # Added for FWT
             model.random_results_class = random_results_class
             model.random_results_task = random_results_task
+    
+    prompt = 'What is this?'
 
     print(file=sys.stderr)
     for t in range(dataset.N_TASKS):
@@ -148,7 +163,11 @@ def train(model: ContinualModel, dataset: ContinualDataset,
                     inputs, labels = inputs.to(model.device), labels.to(
                         model.device)
                     not_aug_inputs = not_aug_inputs.to(model.device)
-                    loss = model.meta_observe(inputs, labels, not_aug_inputs, dataset.CLASS_ID) #class id for vlm
+                    default_qstn = model.model.tokenizer(prompt)
+                    tokens = get_tokens(model, default_qstn)
+                    image_token_mask = tokens.input_ids == model.model.tokenizer.convert_tokens_to_ids(IMAGE_TOKEN)
+                    loss = model.meta_observe(inputs, labels, not_aug_inputs, dataset.CLASS_ID, tokens.input_ids,
+                                              tokens.attention_mask, image_token_mask) #class id for vlm
                 assert not math.isnan(loss)
                 progress_bar.prog(i, len(train_loader), epoch, t, loss)
 

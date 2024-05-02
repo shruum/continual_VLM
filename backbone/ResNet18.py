@@ -146,7 +146,7 @@ class ResNet(MammothBackbone):
         elif returnt == 'all':
             return (out, feature)
 
-        raise NotImplementedError("Unknown return type")
+        raise NotImplementedError("Unknown return type")   
 
 
 def resnet18(nclasses: int, nf: int=64) -> ResNet:

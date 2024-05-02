@@ -60,8 +60,8 @@ class ContinualModel(nn.Module):
         self.opt = SGD(self.net.parameters(), lr=self.args.lr)
         self.device = get_device()
         self.task = 0
-        self.text_encoder = build_text_encoder(device=self.device, pretrain=True)
-        self.text_encoder.eval()
+        # self.text_encoder = build_text_encoder(device=self.device, pretrain=True)
+        # self.text_encoder.eval()
 
         self.nce_criterion = nn.CosineSimilarity(dim=1).cuda(self.device)
 
