@@ -26,7 +26,7 @@ from transformers.utils import (
     replace_return_docstrings,
     logging,
 )
-from transformers.modeling_outputs import BaseModelOutputWithPast, CausalLMOutputWithPast
+from transformers.modeling_outputs import BaseModelOutputWithPast, CausalLMOutputWithPast, QuestionAnsweringModelOutput
 
 
 logger = logging.get_logger(__name__)
@@ -122,12 +122,23 @@ class CustomOPTDecoder(OPTDecoder):
         if image_token_mask is not None and past_key_values is None:
             d_model = inputs_embeds.shape[-1]
             ind = image_token_mask.nonzero(as_tuple=True)
-            image_features = image_features.reshape(-1, d_model)
-            inputs_embeds[ind] = image_features.type(inputs_embeds.dtype)
+            image_features = image_features.reshape(-1, 2, d_model)
+            inputs_embeds[:, ind[0]] = image_features.type(inputs_embeds.dtype)
 
         # embed positions
         if attention_mask is None:
             attention_mask = torch.ones(inputs_embeds.shape[:2], dtype=torch.bool, device=inputs_embeds.device)
+        
+        attention_mask = attention_mask.long()
+
+        # create positions depending on attention_mask
+        positions = (torch.cumsum(attention_mask, dim=1).type_as(attention_mask) * attention_mask).long() - 1
+
+        # cut positions if `past_key_values_length` is > 0
+        positions = positions[:, past_key_values_length:]
+        # print(positions)
+        # print(attention_mask)
+        
         pos_embeds = self.embed_positions(attention_mask, past_key_values_length)
 
         attention_mask = _prepare_4d_causal_attention_mask(
@@ -138,33 +149,6 @@ class CustomOPTDecoder(OPTDecoder):
             inputs_embeds = self.project_in(inputs_embeds)
 
         hidden_states = inputs_embeds + pos_embeds
-        # if self._use_flash_attention_2:
-        #     # 2d mask is passed through the layers
-        #     causal_attention_mask = attention_mask if (attention_mask is not None and 0 in attention_mask) else None
-        #     attention_mask = (
-        #         torch.ones(batch_size, mask_seq_length, device=inputs_embeds.device)
-        #         if attention_mask is None
-        #         else attention_mask
-        #     )
-        # else:
-        #     # 4d mask is passed through the layers
-        #     if attention_mask is None:
-        #         attention_mask = torch.ones(batch_size, mask_seq_length, device=inputs_embeds.device)
-        #     elif attention_mask.shape[1] != mask_seq_length:
-        #         raise ValueError(
-        #             f"The provided attention mask has length {attention_mask.shape[1]}, but its length should be "
-        #             f"{mask_seq_length} (sum of the lengths of current and past inputs)"
-        #         )
-        #     causal_attention_mask = _prepare_4d_causal_attention_mask(
-        #         attention_mask, input_shape, inputs_embeds, past_key_values_length
-        #     )
-
-        # pos_embeds = self.embed_positions(attention_mask, past_key_values_length)
-
-        # if self.project_in is not None:
-        #     inputs_embeds = self.project_in(inputs_embeds)
-
-        # hidden_states = inputs_embeds + pos_embeds
         hidden_states = nn.functional.dropout(hidden_states, p=self.dropout, training=self.training)
 
         # decoder layers
@@ -536,8 +520,10 @@ class CustomOPTCausalLM(OPTPreTrainedModel):
 #     def forward(
 #         self,
 #         input_ids: Optional[torch.LongTensor] = None,
+#         image_features: Optional[torch.Tensor] = None,
 #         attention_mask: Optional[torch.FloatTensor] = None,
 #         head_mask: Optional[torch.FloatTensor] = None,
+#         image_token_mask: Optional[torch.Tensor] = None,
 #         past_key_values: Optional[Tuple[Tuple[torch.Tensor]]] = None,
 #         inputs_embeds: Optional[torch.FloatTensor] = None,
 #         start_positions: Optional[torch.LongTensor] = None,
@@ -595,8 +581,10 @@ class CustomOPTCausalLM(OPTPreTrainedModel):
 #         transformer_outputs = self.model(
 #             input_ids,
 #             past_key_values=past_key_values,
+#             image_features=image_features,
 #             attention_mask=attention_mask,
 #             head_mask=head_mask,
+#             image_token_mask=image_token_mask,
 #             inputs_embeds=inputs_embeds,
 #             use_cache=use_cache,
 #             output_attentions=output_attentions,

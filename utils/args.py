@@ -5,7 +5,7 @@
 
 from argparse import ArgumentParser
 from datasets import NAMES as DATASET_NAMES
-# from models import get_all_models
+from models import get_all_models
 from datetime import datetime
 
 

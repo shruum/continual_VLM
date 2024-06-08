@@ -126,7 +126,7 @@ class ContinualModel(nn.Module):
                 '_' + model_idt
             )
 
-    def save_models(self, dataset):
+    def save_models(self, dataset, net=None):
         """
         Save the models and optimizer state dictionaries
         :param dataset: the continual dataset at hand
@@ -135,11 +135,11 @@ class ContinualModel(nn.Module):
         os.makedirs(model_dir, exist_ok=True)
         model_dict = {}
         model_dict['task'] = self.task
-        model_dict['net'] = self.net.state_dict()
+        model_dict['net'] = net.state_dict()
         model_dict['optimizer'] = self.opt.state_dict()
 
-        for model_idt in self.addit_models:
-            model_dict[model_idt] = getattr(self, model_idt).state_dict()
+        # for model_idt in self.addit_models:
+        #     model_dict[model_idt] = getattr(self, model_idt).state_dict()
 
         torch.save(model_dict, os.path.join(model_dir, f'model_task{self.task}.ph'))
 

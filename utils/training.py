@@ -62,7 +62,22 @@ def evaluate(model: ContinualModel, dataset: ContinualDataset, last=False) -> Tu
                 if 'class-il' not in model.COMPATIBILITY:
                     outputs = model(inputs, k)
                 else:
-                    outputs = model(inputs)
+                    # tok_labels = model.model.tokenizer([dataset.CLASS_ID[label.item()] for label in labels], padding=True)
+                    # batch = model.get_tokens(tok_labels)
+
+                    # image_token_mask = batch['input_ids'] == model.model.tokenizer.convert_tokens_to_ids(IMAGE_TOKEN)
+                    # image_token_mask = image_token_mask[0]
+                    # image_token_mask[2:] = False
+
+                    # kwargs = {
+                    #     'pixel_values': inputs,
+                    #     'input_ids': batch['input_ids'],
+                    #     'attention_mask': batch['attention_mask'],
+                    #     'image_token_mask': image_token_mask,
+                    # }
+                    outputs = model.model.image_encoder(inputs)
+                
+                # print(outputs[0].shape, labels.shape)
 
                 _, pred = torch.max(outputs.data, 1)
                 correct += torch.sum(pred == labels).item()
@@ -70,6 +85,7 @@ def evaluate(model: ContinualModel, dataset: ContinualDataset, last=False) -> Tu
 
                 if dataset.SETTING == 'class-il':
                     mask_classes(outputs, dataset, k)
+                    # print(outputs[0].shape, labels.shape)
                     _, pred = torch.max(outputs.data, 1)
                     correct_mask_classes += torch.sum(pred == labels).item()
 
@@ -106,8 +122,9 @@ def train(model: ContinualModel, dataset: ContinualDataset,
         assert wandb is not None, "Wandb not installed, please install it or run without wandb"
         wandb.init(project=args.wandb_project, entity=args.wandb_entity, config=vars(args))
         args.wandb_url = wandb.run.get_url()
-
-    model.net.to(model.device)
+    
+    print(model.device)
+    model.model.to(model.device)
     results, results_mask_classes = [], []
 
     if not args.disable_log:
@@ -130,7 +147,7 @@ def train(model: ContinualModel, dataset: ContinualDataset,
             model.random_results_class = random_results_class
             model.random_results_task = random_results_task
     
-    prompt = 'What is this?'
+    # prompt = 'What is this?'
 
     print(file=sys.stderr)
     for t in range(dataset.N_TASKS):
@@ -163,11 +180,12 @@ def train(model: ContinualModel, dataset: ContinualDataset,
                     inputs, labels = inputs.to(model.device), labels.to(
                         model.device)
                     not_aug_inputs = not_aug_inputs.to(model.device)
-                    default_qstn = model.model.tokenizer(prompt)
-                    tokens = get_tokens(model, default_qstn)
-                    image_token_mask = tokens.input_ids == model.model.tokenizer.convert_tokens_to_ids(IMAGE_TOKEN)
-                    loss = model.meta_observe(inputs, labels, not_aug_inputs, dataset.CLASS_ID, tokens.input_ids,
-                                              tokens.attention_mask, image_token_mask) #class id for vlm
+                    # default_qstn = model.model.tokenizer(prompt)
+                    # tokens = get_tokens(model, default_qstn)
+                    # image_token_mask = tokens.input_ids == model.model.tokenizer.convert_tokens_to_ids(IMAGE_TOKEN)
+                    # loss = model.meta_observe(inputs, labels, not_aug_inputs, dataset.CLASS_ID, tokens.input_ids,
+                    #                           tokens.attention_mask, image_token_mask)
+                    loss = model.meta_observe(inputs, labels, not_aug_inputs, dataset.CLASS_ID)
                 assert not math.isnan(loss)
                 progress_bar.prog(i, len(train_loader), epoch, t, loss)
 

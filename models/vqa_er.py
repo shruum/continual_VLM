@@ -10,6 +10,11 @@ from utils.buffer import Buffer
 from utils.aux_utils import AuxiliaryNet
 from utils.vision_lang import loss_vlm
 
+IMAGE_TOKEN = "<image>"
+NUM_IMAGE_TOKENS = 2
+NUM_TEXT_TOKENS = 6
+SPECIAL_TOKEN_DICT = {'additional_special_tokens': [IMAGE_TOKEN]}
+
 def get_parser() -> ArgumentParser:
     parser = ArgumentParser(description='Vision and language Continual learning via Experience Replay.')
     add_management_args(parser)
@@ -19,27 +24,48 @@ def get_parser() -> ArgumentParser:
 
     return parser
 
+def get_tokens(model, inputs):
+    I = model.model.tokenizer.convert_tokens_to_ids(IMAGE_TOKEN)
+    input_ids = [I for i in range(NUM_IMAGE_TOKENS)] + inputs['input_ids']
+    attention_mask = [1 for i in range(NUM_IMAGE_TOKENS)] + inputs['attention_mask']
+    return {
+        'input_ids': torch.tensor(input_ids),
+        'attention_mask': torch.tensor(attention_mask),
+    }
+
 
 class VQAER(ContinualModel):
-    NAME = 'vl_er'
+    NAME = 'vqa_er'
     COMPATIBILITY = ['class-il', 'domain-il', 'task-il', 'general-continual', 'multi-modal']
 
     def __init__(self, backbone, loss, args, transform, config=dict()):
         super(VQAER, self).__init__(backbone, loss, args, transform)
         self.buffer = Buffer(self.args.buffer_size, self.device)
         self.aux = AuxiliaryNet(self.args, self.device)
-        # self.addit_models = ['net']
+        self.addit_models = ['net']
         
         self.config = config
         self.model = OPTCaptioningModel(backbone, config)
         self.loss_fn = nn.CrossEntropyLoss()
 
-        self.num_image_tokens = 2
+        self.num_image_tokens = NUM_IMAGE_TOKENS
         self.task = 0
         self.iteration = 0
+        
+        if not IMAGE_TOKEN in self.model.tokenizer.all_special_tokens:
+            self.model.tokenizer.add_special_tokens(SPECIAL_TOKEN_DICT)
 
     def forward(self, *args, **kwargs):
         return self.model.forward(*args, **kwargs)
+
+    def get_tokens(self, inputs):
+        I = self.model.tokenizer.convert_tokens_to_ids(IMAGE_TOKEN)
+        input_ids = [[I for i in range(NUM_IMAGE_TOKENS)] + inp for inp in inputs['input_ids']]
+        attention_mask = [[1 for i in range(NUM_IMAGE_TOKENS)] + inp for inp in inputs['attention_mask']]
+        return {
+            'input_ids': torch.tensor(input_ids),
+            'attention_mask': torch.tensor(attention_mask),
+        }
     
     def check_model(self, **kwargs):
         with torch.no_grad():
@@ -61,24 +87,44 @@ class VQAER(ContinualModel):
             labels = torch.cat((labels, buf_labels))
 
         outputs = self.model.image_encoder(inputs)
-        print(outputs[0])
-        features = self.model.image_encoder.forward_features(inputs)
-        loss_ce1 = self.loss(outputs[0], labels)
+        # print(outputs[0])
+        #features = self.model.image_encoder.forward_features(inputs)
+        # print(outputs.shape, labels.shape)
+        loss_ce1 = self.loss(outputs, labels)
+        
+        
+        tok_labels = self.model.tokenizer([f"This is an image of {class_names[label.item()]}." for label in labels], padding=True)
+        batch = self.get_tokens(tok_labels)
+        image_token_mask = batch['input_ids'] == self.model.tokenizer.convert_tokens_to_ids(IMAGE_TOKEN)
+        image_token_mask = image_token_mask[0]
+        # image_token_mask[2:] = False
+
+        # kwargs = {
+        #     'pixel_values': inputs,
+        #     'input_ids': batch['input_ids'],
+        #     'attention_mask': batch['attention_mask'],
+        #     'image_token_mask': image_token_mask,
+        # }
 
         V = self.model.text_encoder.config.vocab_size
-        N = self.num_image_tokens
+        N = self.num_image_tokens + NUM_TEXT_TOKENS
+        
+        # image_token_mask = batch.input_ids == self.model.tokenizer.convert_tokens_to_ids(IMAGE_TOKEN)
+        
+        
+        # print(batch['input_ids'])
 
         kwargs = {
             'pixel_values': inputs,
-            'input_ids': input_ids,
-            'attention_mask': attention_mask,
-            'image_token_mask': image_token_mask,
+            'input_ids': batch['input_ids'].to(self.device),
+            'attention_mask': batch['attention_mask'].to(self.device),
+            'image_token_mask': image_token_mask.to(self.device),
         }
 
         output = self.forward(**kwargs)
-        labels = input_ids.clone()
+        tok_labels = batch['input_ids'].clone().to(self.device)
         shift_logits = output.logits[..., N:-1, :].contiguous()
-        shift_labels = labels[..., N+1:].contiguous()
+        shift_labels = tok_labels[..., N+1:].contiguous()
         
         loss_aux = self.loss_fn(shift_logits.view(-1, V), shift_labels.view(-1))
         
@@ -100,5 +146,5 @@ class VQAER(ContinualModel):
     def end_task(self, dataset):
         print('Saving Model')
         self.task += 1
-        self.save_models(dataset)
+        self.save_models(dataset, self.model.image_encoder)
 
