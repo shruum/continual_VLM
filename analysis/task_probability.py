@@ -6,13 +6,13 @@ from matplotlib.offsetbox import AnchoredText
 import numpy as np
 from matplotlib import pyplot as plt
 from torch.utils.data import TensorDataset, DataLoader
-from datasets import ContinualDataset
-from datasets import get_dataset
+from cl_datasets import ContinualDataset
+from cl_datasets import get_dataset
 from argparse import Namespace
 from torchvision.datasets import CIFAR10
 import torchvision.transforms as transforms
 import matplotlib.pyplot as plt
-from datasets.seq_vggsound import VGGSound
+from cl_datasets.seq_vggsound import VGGSound
 from backbone.AudioVideoNet import AVClassifier
 
 

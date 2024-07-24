@@ -55,7 +55,7 @@ def get_train_val(train: datasets, test_transform: transforms,
     :return: the training set and the validation set
     """
     dataset_length = train.data.shape[0]
-    directory = 'datasets/val_permutations/'
+    directory = 'cl_datasets/val_permutations/'
     create_if_not_exists(directory)
     file_name = dataset + '.pt'
     if os.path.exists(directory + file_name):

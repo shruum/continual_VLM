@@ -9,7 +9,7 @@ from utils.args import *
 from utils.buffer import Buffer
 import torch.nn as nn
 from utils.aux_utils import AuxiliaryNet
-from utils.vision_lang import loss_vlm
+from utils.vision_lang import lossVLM
 
 def get_parser() -> ArgumentParser:
     parser = ArgumentParser(description='Vision and language Continual learning via Experience Replay.')
@@ -33,8 +33,9 @@ class VLER(ContinualModel):
 
         self.task = 0
         self.iteration = 0
+        self.kd_loss = lossVLM(self)
 
-    def observe(self, inputs, labels, not_aug_inputs, class_names=None):
+    def observe(self, inputs, labels, not_aug_inputs, dataset=None):
 
         real_batch_size = inputs.shape[0]
         loss = 0
@@ -50,11 +51,11 @@ class VLER(ContinualModel):
         # outputs, features = self.net(inputs, returnt='all')
         # loss_ce1 = self.loss(outputs, labels)
 
-        outputs = self.net(inputs)
-        features = self.net.forward_features(inputs)
-        loss_ce1 = self.loss(outputs[0], labels)
+        outputs, features = self.net(inputs, returnt='all')
+        # features = self.net.forward_features(inputs)
+        loss_ce1 = self.loss(outputs, labels)
 
-        loss_aux = loss_vlm(self, labels, class_names, features)
+        loss_aux = self.kd_loss.loss_vlm(labels, dataset, features)
         loss = loss_ce1 + loss_aux
 
         self.aux.collate_loss(loss_dict, loss_ce=loss_ce1, loss_aux=loss_aux, m1=True)

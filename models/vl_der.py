@@ -9,7 +9,7 @@ from utils.args import *
 from utils.buffer import Buffer
 import torch.nn as nn
 from utils.aux_utils import AuxiliaryNet
-from utils.aux_utils import get_clip_embeddings
+from models.text.text_enc import get_text_embeddings
 from torch.nn import functional as F
 
 def get_parser() -> ArgumentParser:
@@ -47,7 +47,7 @@ class VLDer(ContinualModel):
         outputs, features = self.net(inputs, returnt='all')
         loss_ce1 = loss = self.loss(outputs, labels)
 
-        all_text_features = get_clip_embeddings(self.text_encoder, labels, self.device, class_names)
+        all_text_features = get_text_embeddings(self.text_encoder, labels, self.device, class_names)
         all_text_features = all_text_features.to(self.device)
         loss_aux12 = self.aux.loss(features, all_text_features)
         loss += (loss_aux12 * self.args.loss_wt[0])

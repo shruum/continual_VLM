@@ -10,7 +10,7 @@ from utils.args import *
 from utils.buffer import Buffer
 import torch.nn as nn
 from utils.aux_utils import AuxiliaryNet
-from utils.aux_utils import get_clip_embeddings
+from models.text.text_enc import get_text_embeddings
 
 BUILDIN_METADATA_PATH = {
     'lvis': 'lvis_v1_val',
@@ -67,7 +67,7 @@ class VLDerpp(ContinualModel):
             loss += (self.args.alpha_mm[0] * loss_log_12) + (self.args.beta_mm[0] * loss_buf_ce1)
 
 
-        all_text_features = get_clip_embeddings(self.text_encoder, labels, self.device)
+        all_text_features = get_text_embeddings(self.text_encoder, labels, self.device)
         all_text_features = all_text_features.to(self.device)
         # all_text_features = torch.stack([text_emb for text_emb in all_text_emb])
         loss_aux12 = self.aux.loss(features, all_text_features)

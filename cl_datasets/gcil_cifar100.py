@@ -4,9 +4,9 @@ from backbone.ResNet18 import resnet18
 import torch
 import torch.nn.functional as F
 from PIL import Image
-from datasets.utils.continual_dataset import ContinualDataset
+from cl_datasets.utils.continual_dataset import ContinualDataset
 from typing import Tuple
-from datasets.transforms.denormalization import DeNormalize
+from cl_datasets.transforms.denormalization import DeNormalize
 from collections import Counter, OrderedDict
 from copy import deepcopy
 import math

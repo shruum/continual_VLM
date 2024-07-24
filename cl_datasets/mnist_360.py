@@ -16,10 +16,10 @@ from backbone.MNISTMLP import MNISTMLP
 from torch.utils.data import DataLoader
 from torchvision.datasets import MNIST
 
-from datasets.perm_mnist import MyMNIST
-from datasets.transforms.rotation import IncrementalRotation
-from datasets.utils.gcl_dataset import GCLDataset
-from datasets.utils.validation import get_train_val
+from cl_datasets.perm_mnist import MyMNIST
+from cl_datasets.transforms.rotation import IncrementalRotation
+from cl_datasets.utils.gcl_dataset import GCLDataset
+from cl_datasets.utils.validation import get_train_val
 # from utils.conf import base_path_dataset as base_path
 
 

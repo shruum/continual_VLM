@@ -9,8 +9,8 @@ from argparse import Namespace
 from typing import Tuple
 
 import torch
-from datasets import get_dataset
-from datasets.utils.continual_dataset import ContinualDataset
+from cl_datasets import get_dataset
+from cl_datasets.utils.continual_dataset import ContinualDataset
 from models.utils.continual_model import ContinualModel
 
 from utils.tb_logger import *
@@ -18,10 +18,11 @@ from utils.loggers import *
 from utils.status import ProgressBar
 import numpy as np
 
-# try:
-#     import wandb
-# except ImportError:
-#     wandb = None
+try:
+    import wandb
+    wandb.login(key='fa9d5ad248f922603618680d1197fcb953d7d32e')
+except ImportError:
+    wandb = None
 
 def mask_classes(outputs: torch.Tensor, dataset: ContinualDataset, k: int) -> None:
     """
@@ -91,6 +92,8 @@ def train(model: ContinualModel, dataset: ContinualDataset,
 
     if not args.nowand:
         assert wandb is not None, "Wandb not installed, please install it or run without wandb"
+        print(args.wandb_project)
+        print(args.wandb_entity)
         wandb.init(project=args.wandb_project, entity=args.wandb_entity, config=vars(args))
         args.wandb_url = wandb.run.get_url()
 
@@ -148,7 +151,7 @@ def train(model: ContinualModel, dataset: ContinualDataset,
                     inputs, labels = inputs.to(model.device), labels.to(
                         model.device)
                     not_aug_inputs = not_aug_inputs.to(model.device)
-                    loss = model.meta_observe(inputs, labels, not_aug_inputs, dataset.CLASS_ID) #class id for vlm
+                    loss = model.meta_observe(inputs, labels, not_aug_inputs, dataset) #class id for vlm
                 assert not math.isnan(loss)
                 progress_bar.prog(i, len(train_loader), epoch, t, loss)
 

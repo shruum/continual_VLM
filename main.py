@@ -12,17 +12,17 @@ import socket
 mammoth_path = os.path.dirname(os.path.abspath(__file__))
 os.chdir(mammoth_path)
 sys.path.append(mammoth_path)
-sys.path.append(mammoth_path + '/datasets')
+sys.path.append(mammoth_path + '/cl_datasets')
 sys.path.append(mammoth_path + '/backbone')
 sys.path.append(mammoth_path + '/models')
 
-from datasets import NAMES as DATASET_NAMES
+from cl_datasets import NAMES as DATASET_NAMES
 from models import get_all_models
 from argparse import ArgumentParser
 from utils.args import add_management_args, add_gcil_args, add_av_dataset_args
-from datasets import ContinualDataset
+from cl_datasets import ContinualDataset
 from utils.continual_training import train as ctrain
-from datasets import get_dataset
+from cl_datasets import get_dataset
 from models import get_model
 from utils.training import train
 from utils.best_args import best_args
@@ -49,12 +49,13 @@ def parse_args():
                         choices=DATASET_NAMES,
                         help='Which dataset to perform experiments on.')
     parser.add_argument('--dataset_dir', type=str, default='data',
-                        help='Base directory for datasets.')
-    parser.add_argument('--output_dir', type=str, default='experiments',
+                        help='Base directory for cl_datasets.')
+    parser.add_argument('--output_dir', type=str, default='experiments_res50',
                         help='Base directory for logging results.')
     parser.add_argument('--load_best_args', action='store_true',
                         help='Loads the best arguments for each method, '
                              'dataset and memory buffer.')
+
     torch.set_num_threads(4)
     add_management_args(parser)
     args = parser.parse_known_args()[0]
