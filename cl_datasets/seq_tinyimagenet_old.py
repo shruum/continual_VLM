@@ -11,10 +11,11 @@ import torch.nn.functional as F
 # from utils.conf import base_path_dataset as base_path
 from PIL import Image
 import os
-from datasets.utils.validation import get_train_val
-from datasets.utils.continual_dataset import ContinualDataset, store_masked_loaders
-from datasets.utils.continual_dataset import get_previous_train_loader
-from datasets.transforms.denormalization import DeNormalize
+from cl_datasets.utils.validation import get_train_val
+from cl_datasets.utils.continual_dataset import ContinualDataset, store_masked_loaders
+from cl_datasets.utils.continual_dataset import get_previous_train_loader
+from cl_datasets.transforms.denormalization import DeNormalize
+
 
 
 class TinyImagenet(Dataset):
@@ -120,6 +121,14 @@ class SequentialTinyImagenet(ContinualDataset):
              transforms.ToTensor(),
              transforms.Normalize((0.4802, 0.4480, 0.3975),
                                   (0.2770, 0.2691, 0.2821))])
+    # Read the contents of the words and wnids files
+    CLASS_ID = {}
+    with open('/volumes1/datasets/tiny-imagenet-200/wnids.txt', 'r') as file:
+        for idx, line in enumerate(file):
+            # Strip any leading/trailing whitespace and newline characters
+            class_id = line.strip()
+            # Add the class ID to the dictionary with the current index as the key
+            CLASS_ID[idx] = class_id
 
     def get_data_loaders(self):
         transform = self.TRANSFORM

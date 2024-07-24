@@ -3,27 +3,30 @@
 # This source code is licensed under the license found in the
 # LICENSE file in the root directory of this source tree.
 
-import numpy as np
 import torch.nn.functional as F
 import torchvision.transforms as transforms
 from backbone.MNISTMLP import MNISTMLP
 
-from datasets.perm_mnist import store_mnist_loaders
-from datasets.transforms.rotation import GivenRotation
-from datasets.utils.continual_dataset import ContinualDataset
+from cl_datasets.perm_mnist import store_mnist_loaders
+from cl_datasets.transforms.rotation import GivenRotation
+from cl_datasets.utils.continual_dataset import ContinualDataset
+from argparse import Namespace
 
 
-class RotatedMNIST(ContinualDataset):
-    NAME = 'rot-mnist'
+class RotatedMNISTFixed(ContinualDataset):
+    NAME = 'rot-mnist-fixed'
     SETTING = 'domain-il'
     N_CLASSES_PER_TASK = 10
     N_TASKS = 20
 
-    def __init__(self, args):
-        super(RotatedMNIST, self).__init__(args)
-        np.random.seed(args.mnist_seed)
-        RotatedMNIST.N_TASKS = args.n_tasks_mnist
-        lst_degrees = [np.random.uniform(0, 180) for i in range(RotatedMNIST.N_TASKS)]
+    def __init__(self, args: Namespace) -> None:
+        """
+        Initializes the train and test.sh lists of dataloaders.
+        :param args: the arguments which contains the hyperparameters
+        """
+        super(RotatedMNISTFixed, self).__init__(args)
+        RotatedMNISTFixed.N_TASKS = args.n_tasks_mnist
+        lst_degrees = [args.deg_inc * i for i in range(args.n_tasks_mnist)]
         self.rotations = [GivenRotation(deg) for deg in lst_degrees]
         self.task_id = 0
 
@@ -35,7 +38,7 @@ class RotatedMNIST(ContinualDataset):
 
     @staticmethod
     def get_backbone():
-        return MNISTMLP(28 * 28, RotatedMNIST.N_CLASSES_PER_TASK)
+        return MNISTMLP(28 * 28, RotatedMNISTFixed.N_CLASSES_PER_TASK)
 
     @staticmethod
     def get_transform():
@@ -56,3 +59,4 @@ class RotatedMNIST(ContinualDataset):
     @staticmethod
     def get_scheduler(model, args):
         return None
+

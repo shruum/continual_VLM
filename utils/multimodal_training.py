@@ -9,8 +9,8 @@ from argparse import Namespace
 from typing import Tuple
 
 import torch
-from datasets import get_dataset
-from datasets.utils.continual_dataset import ContinualDataset
+from cl_datasets import get_dataset
+from cl_datasets.utils.continual_dataset import ContinualDataset
 from models.utils.continual_model import ContinualModel
 
 from utils.tb_logger import *

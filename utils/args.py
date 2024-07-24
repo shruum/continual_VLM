@@ -4,7 +4,7 @@
 # LICENSE file in the root directory of this source tree.
 
 from argparse import ArgumentParser
-from datasets import NAMES as DATASET_NAMES
+from cl_datasets import NAMES as DATASET_NAMES
 from models import get_all_models
 from datetime import datetime
 
@@ -91,6 +91,7 @@ def add_auxiliary_args(parser: ArgumentParser) -> None:
     parser.add_argument('--aug_prob', default=0.0, type=float)
     parser.add_argument('--data_combine', action='store_true')
     parser.add_argument('--loss_mode', type=str, default='l2')
+    parser.add_argument('--text_model', type=str, required=True)
 
 def add_gcil_args(parser: ArgumentParser) -> None:
     """

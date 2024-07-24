@@ -157,3 +157,6 @@ def resnet18(nclasses: int, nf: int=64) -> ResNet:
     :return: ResNet network
     """
     return ResNet(BasicBlock, [2, 2, 2, 2], nclasses, nf)
+
+def resnet50(nclasses: int, nf: int=64):
+    return ResNet(BasicBlock, [3,4,6,3], nclasses, nf)

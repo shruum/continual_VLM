@@ -11,9 +11,9 @@ from backbone.MNISTMLP import MNISTMLP
 from PIL import Image
 from torchvision.datasets import MNIST
 
-from datasets.utils.continual_dataset import (ContinualDataset,
+from cl_datasets.utils.continual_dataset import (ContinualDataset,
                                               store_masked_loaders)
-from datasets.utils.validation import get_train_val
+from cl_datasets.utils.validation import get_train_val
 # from utils.conf import base_path_dataset as base_path
 import os
 

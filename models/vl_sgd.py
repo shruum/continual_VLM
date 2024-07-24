@@ -8,7 +8,7 @@ from models.utils.continual_model import ContinualModel
 from utils.args import *
 import torch.nn as nn
 from utils.aux_utils import AuxiliaryNet
-from utils.aux_utils import get_clip_embeddings
+from models.text.text_enc import get_text_embeddings
 
 def get_parser() -> ArgumentParser:
     parser = ArgumentParser(description='Vision and language Continual learning without Experience Replay.')
@@ -40,7 +40,7 @@ class VLSgd(ContinualModel):
         # labels_hot = nn.functional.one_hot(labels, num_classes=10).float()
         loss_ce1 = self.loss(outputs, labels)
 
-        all_text_features = get_clip_embeddings(self.text_encoder, labels, self.device, class_names)
+        all_text_features = get_text_embeddings(self.text_encoder, labels, self.device, class_names)
         all_text_features = all_text_features.to(self.device)
         # all_text_features = torch.stack([text_emb for text_emb in all_text_emb])
         loss_aux12 = self.aux.loss(features, all_text_features)

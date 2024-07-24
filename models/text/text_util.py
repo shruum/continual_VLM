@@ -14,7 +14,6 @@ __all__ = ["tokenize"]
 
 count = 0
 
-
 class LayerNorm(nn.LayerNorm):
     """Subclass torch's LayerNorm to handle fp16."""
 
@@ -174,22 +173,3 @@ class CLIPTEXT(nn.Module):
         text = self.tokenize(captions).to(self.device)  # B x L x D
         features = self.encode_text(text)  # B x D
         return features
-
-
-def build_text_encoder(device, pretrain=True):
-    text_encoder = CLIPTEXT().to(device)
-    if pretrain:
-        import clip
-        #pretrained_model, _ = clip.load("ViT-B/32", device=device) # ['RN50','RN101','RN50x4','RN50x16','RN50x64','ViT-B/32','ViT-B/16','ViT-L/14','ViT-L/14@336px']
-        pretrained_model, _ = clip.load("/output/clip/ViT-B-32.pt", device='cpu')
-        state_dict = pretrained_model.state_dict()
-        to_delete_keys = ["logit_scale", "input_resolution", \
-                          "context_length", "vocab_size"] + \
-                         [k for k in state_dict.keys() if k.startswith('visual.')]
-        for k in to_delete_keys:
-            if k in state_dict:
-                del state_dict[k]
-        print('Loading pretrained CLIP')
-        text_encoder.load_state_dict(state_dict)
-    # import pdb; pdb.set_trace()
-    return text_encoder

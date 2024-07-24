@@ -5,7 +5,7 @@
 
 import torch
 # from utils.spkdloss import SPKDLoss
-from datasets import get_dataset
+from cl_datasets import get_dataset
 from torch.nn import functional as F
 
 from models.utils.continual_model import ContinualModel

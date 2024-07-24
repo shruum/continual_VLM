@@ -9,7 +9,7 @@ from copy import deepcopy
 import numpy as np
 import torch
 import torch.nn.functional as F
-from datasets import get_dataset
+from cl_datasets import get_dataset
 from torch import nn
 from torch.utils.data.dataloader import DataLoader
 

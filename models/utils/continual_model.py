@@ -14,13 +14,13 @@ from torch.optim import SGD
 
 from utils.conf import get_device
 from utils.magic import persistent_locals
-from datasets.utils.continual_dataset import ContinualDataset
+from cl_datasets.utils.continual_dataset import ContinualDataset
 from utils.loggers import *
 
 import os
 import numpy as np
 from typing import Tuple
-from models.clip_text import build_text_encoder
+from models.text.text_enc import TextEncoder
 
 try:
     import wandb
@@ -60,11 +60,9 @@ class ContinualModel(nn.Module):
         self.opt = SGD(self.net.parameters(), lr=self.args.lr)
         self.device = get_device()
         self.task = 0
-        self.text_encoder = build_text_encoder(device=self.device, pretrain=True)
-        self.text_encoder.eval()
-
-        self.nce_criterion = nn.CosineSimilarity(dim=1).cuda(self.device)
-
+        if self.NAME == 'vl_er':
+            self.text_model = args.text_model
+            self.text_encoder = TextEncoder(self.text_model, device=self.device, pretrain=True)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """

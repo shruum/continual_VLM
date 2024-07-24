@@ -7,7 +7,7 @@
 from argparse import Namespace
 
 import torch
-from datasets import get_dataset
+from cl_datasets import get_dataset
 from models import get_model
 from models.utils.continual_model import ContinualModel
 

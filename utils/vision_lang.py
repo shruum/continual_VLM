@@ -1,59 +1,129 @@
 import torch
-import torch.nn as nn
+import torch.nn.functional as F
+from torch import nn
 
-from utils.aux_utils import get_clip_embeddings
+from models.text.text_enc import get_text_embeddings
+
+TEX_DIM = {
+    "sent_transf": 384,
+    "bert": 768,
+    "clip": 512
+}
+
+class lossVLM():
+
+    def __init__(self, model):
 
 
+        self.model = model
+        self.device = model.device
 
-def loss_vlm(model, labels, class_names, features):
-
-    all_text_features = get_clip_embeddings(model.text_encoder, labels, model.device, class_names)
-    all_text_features = all_text_features.to(model.device)
-    loss = 0
-    if model.args.loss_mode == 'l2':
-        # all_text_features = torch.stack([text_emb for text_emb in all_text_emb])
-        loss_aux12 = model.aux.loss(features, all_text_features)
-        loss = (loss_aux12 * model.args.loss_wt[0])
-
-    elif model.args.loss_mode == 'nce':
-        dim = 1024
-        # projection MLP
-        proj1 = nn.Sequential(
-            nn.Linear(features.size(1), dim, bias=False),
-            nn.BatchNorm1d(dim),
+        self.img_dim = 512
+        self.dim = 1024
+        self.proj_i = nn.Sequential(
+            nn.Linear(512, self.dim, bias=False),
+            nn.BatchNorm1d(self.dim),
             nn.ReLU(inplace=True),
-            nn.Linear(dim, dim),
-            nn.BatchNorm1d(dim, affine=False),
-        )
-        proj1 = proj1.to(model.device)
+            nn.Linear(self.dim, self.dim),
+            nn.BatchNorm1d(self.dim, affine=False),
+        ).to(self.device)
+
+        self.text_dim = TEX_DIM.get(self.model.args.text_model)
+        self.proj_t = nn.Sequential(
+            nn.Linear(self.text_dim, self.dim, bias=False),
+            nn.BatchNorm1d(self.dim),
+            nn.ReLU(inplace=True),
+            nn.Linear(self.dim, self.img_dim),
+        ).to(self.device)
+
         # predictor MLP
-        proj2 = nn.Sequential(
-            nn.Linear(dim, 512, bias=False),
+        self.pred = nn.Sequential(
+            nn.Linear(self.dim, self.img_dim, bias=False),
             nn.BatchNorm1d(512),
             nn.ReLU(inplace=True),
-            nn.Linear(512, dim),
-        )
-        proj2 = proj2.to(model.device)
+            nn.Linear(self.img_dim, self.img_dim),
+        ).to(self.device)
 
-        fx = torch.flatten(features, start_dim=1)
-        zx = proj1(fx)
-        px = proj2(zx)
+    def loss_vlm(self, labels, dataset, features):
 
-        if features.size(1) != all_text_features.size(1):
-            proj1 = nn.Sequential(
-                nn.Linear(all_text_features.size(1), dim, bias=False),
-                nn.BatchNorm1d(dim),
-                nn.ReLU(inplace=True),
-                nn.Linear(dim, dim),
-                nn.BatchNorm1d(dim, affine=False),
-            ).to(model.device)
-        fy = torch.flatten(all_text_features, start_dim=1)
-        zy = proj1(fy)
-        # py = self.proj2(zy)
-        loss_aux = -(model.nce_criterion(px, zy.detach()).mean())
-        loss = (loss_aux * model.args.loss_wt[0])
+        all_text_features = get_text_embeddings(self.model.text_encoder, labels, dataset)
+        all_text_features = all_text_features.to(self.device)
 
-    return loss
+        loss = 0
+        if self.model.args.loss_mode == 'l2':
+            # all_text_features = torch.stack([text_emb for text_emb in all_text_emb])
+            all_text_features = self.proj_t(all_text_features)
+            loss_aux12 = self.l2_loss(features, all_text_features)
+            loss = (loss_aux12 * self.model.args.loss_wt[0])
 
+        elif self.model.args.loss_mode == 'kl':
+            # all_text_features = torch.stack([text_emb for text_emb in all_text_emb])
+            all_text_features = self.proj_t(all_text_features)
+            loss_aux12 = self.kl_loss(features, all_text_features)
+            loss = (loss_aux12 * self.model.args.loss_wt[0])
 
+        elif self.model.args.loss_mode == 'nce':
+            # projection MLP
+            fx = torch.flatten(features, start_dim=1)
+            zx = self.proj_i(fx)
+            px = self.pred(zx)
+            # if features.size(1) != all_text_features.size(1):
+            fy = torch.flatten(all_text_features, start_dim=1)
+            zy = self.proj_t(fy)
+            # py = self.proj2(zy)
+            loss_aux = - (self.nce_loss(px, zy))
+            loss = (loss_aux * self.model.args.loss_wt[0])
+
+        elif self.model.args.loss_mode == 'sim':
+            # all_text_features = torch.stack([text_emb for text_emb in all_text_emb])
+            loss_aux12 = self.similarity_preserving_loss(features, all_text_features)
+            loss = (loss_aux12 * self.model.args.loss_wt[0])
+
+        return loss
+
+    def kl_loss(self, out1, out2, T=1):
+        p = F.log_softmax(out1 / T, dim=1)
+        q = F.softmax(out2 / T, dim=1)
+        l_kl = F.kl_div(p, q, size_average=False) * (T**2) / out1.shape[0]
+        return l_kl
+
+    def l2_loss(self, out1, out2):
+        criterion_MSE = nn.MSELoss(reduction='mean')
+        return criterion_MSE(out1, out2)
+
+    def nce_loss(self, out1, out2):
+        nce_criterion = (nn.CosineSimilarity(dim=1).cuda(self.device))
+        return nce_criterion(out1, out2.detach()).mean()
+    def similarity_preserving_loss(self, A_t, A_s):
+        """Given the activations for a batch of input from the teacher and student
+        network, calculate the similarity preserving knowledge distillation loss from the
+        paper Similarity-Preserving Knowledge Distillation (https://arxiv.org/abs/1907.09682)
+        equation 4
+        Note: A_t and A_s must have the same batch size
+        Parameters:
+            A_t (4D tensor): activation maps from the teacher network of shape b x c1 x h1 x w1
+            A_s (4D tensor): activation maps from the student network of shape b x c2 x h2 x w2
+        Returns:
+            l_sp (1D tensor): similarity preserving loss value
+    """
+        # reshape the activations
+        # b1, c1, h1, w1 = A_t.shape
+        # b2, c2, h2, w2 = A_s.shape
+        # assert b1 == b2, 'Dim0 (batch size) of the activation maps must be compatible'
+        Q_t = A_t #.reshape([b1, c1 * h1 * w1])
+        Q_s = A_s #.reshape([b2, c2 * h2 * w2])
+
+        # evaluate normalized similarity matrices (eq 3)
+        G_t = torch.mm(Q_t, Q_t.t())
+        # G_t = G_t / G_t.norm(p=2)
+        G_t = torch.nn.functional.normalize(G_t)
+
+        G_s = torch.mm(Q_s, Q_s.t())
+        # G_s = G_s / G_s.norm(p=2)
+        G_s = torch.nn.functional.normalize(G_s)
+
+        # calculate the similarity preserving loss (eq 4)
+        l_sp = (G_t - G_s).pow(2).mean()
+
+        return l_sp
 

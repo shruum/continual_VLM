@@ -6,7 +6,7 @@
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from datasets import get_dataset
+from cl_datasets import get_dataset
 from torch.optim import SGD
 
 from utils.args import *

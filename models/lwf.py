@@ -4,7 +4,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import torch
-from datasets import get_dataset
+from cl_datasets import get_dataset
 from torch.optim import SGD
 
 from models.utils.continual_model import ContinualModel

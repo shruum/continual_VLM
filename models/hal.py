@@ -7,7 +7,7 @@ import sys
 
 import numpy as np
 import torch
-from datasets import get_dataset
+from cl_datasets import get_dataset
 from torch.optim import SGD
 
 from models.utils.continual_model import ContinualModel

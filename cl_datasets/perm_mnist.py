@@ -13,9 +13,9 @@ from torch.utils.data import DataLoader
 from torchvision.datasets import MNIST
 
 import os
-from datasets.transforms.permutation import Permutation
-from datasets.utils.continual_dataset import ContinualDataset
-from datasets.utils.validation import get_train_val
+from cl_datasets.transforms.permutation import Permutation
+from cl_datasets.utils.continual_dataset import ContinualDataset
+from cl_datasets.utils.validation import get_train_val
 # from utils.conf import base_path_dataset as base_path
 from argparse import Namespace
 import numpy as np

@@ -12,11 +12,11 @@ from PIL import Image
 from torchvision.datasets import CIFAR10
 
 import os
-# from datasets.seq_tinyimagenet import base_path
-from datasets.transforms.denormalization import DeNormalize
-from datasets.utils.continual_dataset import (ContinualDataset,
+# from cl_datasets.seq_tinyimagenet import base_path
+from cl_datasets.transforms.denormalization import DeNormalize
+from cl_datasets.utils.continual_dataset import (ContinualDataset,
                                               store_masked_loaders)
-from datasets.utils.validation import get_train_val
+from cl_datasets.utils.validation import get_train_val
 
 class TCIFAR10(CIFAR10):
     """Workaround to avoid printing the already downloaded messages."""
@@ -25,7 +25,7 @@ class TCIFAR10(CIFAR10):
         self.root = root
         super(TCIFAR10, self).__init__(root, train, transform, target_transform, download=not self._check_integrity())
 
-class MyCIFAR10(CIFAR10):
+class MyCIFAR10T(CIFAR10):
     """
     Overrides the CIFAR10 dataset to change the getitem function.
     """
@@ -33,7 +33,7 @@ class MyCIFAR10(CIFAR10):
                  target_transform=None, download=False) -> None:
         self.not_aug_transform = transforms.Compose([transforms.ToTensor()])
         self.root = root
-        super(MyCIFAR10, self).__init__(root, train, transform, target_transform, download=not self._check_integrity())
+        super(MyCIFAR10T, self).__init__(root, train, transform, target_transform, download=not self._check_integrity())
 
     def __getitem__(self, index: int) -> Tuple[Image.Image, int, Image.Image]:
         """
@@ -63,7 +63,7 @@ class MyCIFAR10(CIFAR10):
 
 class SequentialCIFAR10(ContinualDataset):
 
-    NAME = 'seq-cifar10'
+    NAME = 'seq-cifar10_transf'
     SETTING = 'class-il'
     N_CLASSES_PER_TASK = 2
     N_TASKS = 5
@@ -102,9 +102,9 @@ class SequentialCIFAR10(ContinualDataset):
         return transform
 
     @staticmethod
-    def get_backbone():
-        return resnet18(SequentialCIFAR10.N_CLASSES_PER_TASK
-                            * SequentialCIFAR10.N_TASKS)
+    def get_backbone(patch_size=None, patch_embed_type=None, depth=None):
+        return vittiny(nclasses=SequentialCIFAR10.N_CLASSES_PER_TASK*SequentialCIFAR10.N_TASKS, p_size=patch_size,
+                       embed_type=patch_embed_type, depth=depth)
 
     @staticmethod
     def get_loss():
