@@ -60,7 +60,7 @@ class ContinualModel(nn.Module):
         self.opt = SGD(self.net.parameters(), lr=self.args.lr)
         self.device = get_device()
         self.task = 0
-        if self.NAME == 'vl_er':
+        if "vl" in self.NAME:
             self.text_model = args.text_model
             self.text_encoder = TextEncoder(self.text_model, device=self.device, pretrain=True)
 
@@ -129,17 +129,18 @@ class ContinualModel(nn.Module):
         Save the models and optimizer state dictionaries
         :param dataset: the continual dataset at hand
         """
-        model_dir = os.path.join(self.args.output_dir, "results", dataset.SETTING, dataset.NAME, self.NAME, self.args.experiment_id)
-        os.makedirs(model_dir, exist_ok=True)
-        model_dict = {}
-        model_dict['task'] = self.task
-        model_dict['net'] = self.net.state_dict()
-        model_dict['optimizer'] = self.opt.state_dict()
+        if self.args.save_model:
+            model_dir = os.path.join(self.args.output_dir, "results", dataset.SETTING, dataset.NAME, self.NAME, self.args.experiment_id)
+            os.makedirs(model_dir, exist_ok=True)
+            model_dict = {}
+            model_dict['task'] = self.task
+            model_dict['net'] = self.net.state_dict()
+            model_dict['optimizer'] = self.opt.state_dict()
 
-        for model_idt in self.addit_models:
-            model_dict[model_idt] = getattr(self, model_idt).state_dict()
+            for model_idt in self.addit_models:
+                model_dict[model_idt] = getattr(self, model_idt).state_dict()
 
-        torch.save(model_dict, os.path.join(model_dir, f'model_task{self.task}.ph'))
+            torch.save(model_dict, os.path.join(model_dir, f'model_task{self.task}.ph'))
 
     def evaluate(self, dataset: ContinualDataset, last=False, eval_model='net') -> Tuple[list, list]:
         """

@@ -5,6 +5,9 @@ from transformers import BertTokenizer, BertModel
 from sentence_transformers import SentenceTransformer
 from models.text.text_util import CLIPTEXT
 
+import os
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
+
 # Function to get text embeddings
 GPT_PATH_CIFAR = "cl_datasets/metadata/lvis_gpt3_text-davinci-002_descriptions_author.json"
 GPT_PATH = "/volumes1/datasets/tinyimagenet_description.json"
@@ -79,15 +82,24 @@ class TextEncoder():
 
 # Function to get text embeddings using TextEncoder class
 def get_text_embeddings(text_encoder, labels, dataset=None, prompt='a '):
-    with open(GPT_PATH, 'r') as f:
+    with open(dataset.args.gpt_path, 'r') as f:
         descriptions = json.load(f)
 
     task = dataset.i
     sentences = []
     for label in labels:
-        cls_idx = dataset.img_paths[task]['class_to_idx']
-        class_name = list(cls_idx.keys())[list(cls_idx.values()).index(label)]
-        sentences.append(descriptions[class_name])
+        if dataset.args.dataset == 'seq-tinyimg':
+            cls_idx = dataset.img_paths[task]['class_to_idx']
+            class_name = list(cls_idx.keys())[list(cls_idx.values()).index(label)]
+            sentences.append(descriptions[class_name])
+        elif dataset.args.dataset == 'dn4il':
+            class_name = str(label.item())
+            sentences.append(descriptions[class_name])
+        elif dataset.args.dataset == 'seq-cifar10':
+            class_name = dataset.CLASS_ID[label.item()]
+            sentences.append(descriptions[class_name][0])
+        else:
+            sentences.append(descriptions[label])
 
     embeddings = text_encoder.encode_sentences(sentences)
     return embeddings

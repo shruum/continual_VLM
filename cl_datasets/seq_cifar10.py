@@ -7,7 +7,7 @@ from typing import Tuple
 
 import torch.nn.functional as F
 import torchvision.transforms as transforms
-from backbone.ResNet18 import resnet18
+from backbone.ResNet18 import resnet50
 from PIL import Image
 from torchvision.datasets import CIFAR10
 
@@ -103,7 +103,7 @@ class SequentialCIFAR10(ContinualDataset):
 
     @staticmethod
     def get_backbone():
-        return resnet18(SequentialCIFAR10.N_CLASSES_PER_TASK
+        return resnet50(SequentialCIFAR10.N_CLASSES_PER_TASK
                             * SequentialCIFAR10.N_TASKS)
 
     @staticmethod

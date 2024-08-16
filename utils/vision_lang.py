@@ -3,6 +3,7 @@ import torch.nn.functional as F
 from torch import nn
 
 from models.text.text_enc import get_text_embeddings
+from utils.cka import cka_similarity
 
 TEX_DIM = {
     "sent_transf": 384,
@@ -17,31 +18,41 @@ class lossVLM():
 
         self.model = model
         self.device = model.device
+        self.rev_proj = self.model.args.rev_proj
 
-        self.img_dim = 512
-        self.dim = 1024
-        self.proj_i = nn.Sequential(
-            nn.Linear(512, self.dim, bias=False),
-            nn.BatchNorm1d(self.dim),
-            nn.ReLU(inplace=True),
-            nn.Linear(self.dim, self.dim),
-            nn.BatchNorm1d(self.dim, affine=False),
-        ).to(self.device)
-
+        self.img_dim = 2048
+        self.img_hdim = 4096
+        self.text_hdim = 1024
         self.text_dim = TEX_DIM.get(self.model.args.text_model)
-        self.proj_t = nn.Sequential(
-            nn.Linear(self.text_dim, self.dim, bias=False),
-            nn.BatchNorm1d(self.dim),
+
+        self.proj_i = nn.Sequential(
+            nn.Linear(self.img_dim, self.img_hdim, bias=False),
+            nn.BatchNorm1d(self.img_hdim),
             nn.ReLU(inplace=True),
-            nn.Linear(self.dim, self.img_dim),
+            nn.Linear(self.img_hdim, self.text_dim),
+            # nn.BatchNorm1d(self.text_dim, affine=False),
+        ).to(self.device)
+        # predictor MLP
+        self.pred_i = nn.Sequential(
+            nn.Linear(self.text_dim, self.text_hdim, bias=False),
+            nn.BatchNorm1d(self.text_hdim),
+            nn.ReLU(inplace=True),
+            nn.Linear(self.text_hdim, self.text_dim),
         ).to(self.device)
 
-        # predictor MLP
-        self.pred = nn.Sequential(
-            nn.Linear(self.dim, self.img_dim, bias=False),
-            nn.BatchNorm1d(512),
+
+        self.proj_t = nn.Sequential(
+            nn.Linear(self.text_dim, self.text_hdim, bias=False),
+            nn.BatchNorm1d(self.text_hdim),
             nn.ReLU(inplace=True),
-            nn.Linear(self.img_dim, self.img_dim),
+            nn.Linear(self.text_hdim, self.img_dim),
+        ).to(self.device)
+        # predictor MLP
+        self.pred_t = nn.Sequential(
+            nn.Linear(self.img_dim, self.img_hdim, bias=False),
+            nn.BatchNorm1d(self.img_hdim),
+            nn.ReLU(inplace=True),
+            nn.Linear(self.img_hdim, self.img_dim),
         ).to(self.device)
 
     def loss_vlm(self, labels, dataset, features):
@@ -52,32 +63,47 @@ class lossVLM():
         loss = 0
         if self.model.args.loss_mode == 'l2':
             # all_text_features = torch.stack([text_emb for text_emb in all_text_emb])
-            all_text_features = self.proj_t(all_text_features)
+            if self.rev_proj:
+                features = self.proj_i(features)
+            else:
+                all_text_features = self.proj_t(all_text_features)
             loss_aux12 = self.l2_loss(features, all_text_features)
             loss = (loss_aux12 * self.model.args.loss_wt[0])
 
         elif self.model.args.loss_mode == 'kl':
             # all_text_features = torch.stack([text_emb for text_emb in all_text_emb])
-            all_text_features = self.proj_t(all_text_features)
+            if self.rev_proj:
+                features = self.proj_i(features)
+            else:
+                all_text_features = self.proj_t(all_text_features)
             loss_aux12 = self.kl_loss(features, all_text_features)
             loss = (loss_aux12 * self.model.args.loss_wt[0])
 
         elif self.model.args.loss_mode == 'nce':
             # projection MLP
             fx = torch.flatten(features, start_dim=1)
-            zx = self.proj_i(fx)
-            px = self.pred(zx)
-            # if features.size(1) != all_text_features.size(1):
             fy = torch.flatten(all_text_features, start_dim=1)
-            zy = self.proj_t(fy)
-            # py = self.proj2(zy)
-            loss_aux = - (self.nce_loss(px, zy))
+            # zx = self.proj_i(fx)
+            # if features.size(1) != all_text_features.size(1):
+            if self.rev_proj:
+                px = self.proj_i(fx)
+                zx = self.pred_i(px)
+                loss_aux = - (self.nce_loss(zx, fy))
+            else:
+                py = self.proj_t(fy)
+                zy = self.pred_t(py)
+                loss_aux = - (self.nce_loss(fx, zy))
             loss = (loss_aux * self.model.args.loss_wt[0])
 
         elif self.model.args.loss_mode == 'sim':
             # all_text_features = torch.stack([text_emb for text_emb in all_text_emb])
             loss_aux12 = self.similarity_preserving_loss(features, all_text_features)
             loss = (loss_aux12 * self.model.args.loss_wt[0])
+
+        # similarity_score_lin = cka_similarity(features, all_text_features, sim_type='linear')
+        # similarity_score_ker = cka_similarity(features, all_text_features, sim_type='kernel')
+        # print(f"CKA Similarity Linear: {similarity_score_lin}")
+        # print(f"CKA Similarity Kernel: {similarity_score_ker}")
 
         return loss
 

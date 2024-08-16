@@ -42,20 +42,18 @@ class VLER(ContinualModel):
         loss_dict = {}
         self.opt.zero_grad()
 
+        outputs, features = self.net(inputs, returnt='all')
+        loss_aux = self.kd_loss.loss_vlm(labels, dataset, features)
+
         if not self.buffer.is_empty():
             buf_inputs, buf_labels = self.buffer.get_data(
                 self.args.minibatch_size, transform=self.transform)
             inputs = torch.cat((inputs, buf_inputs))
             labels = torch.cat((labels, buf_labels))
 
-        # outputs, features = self.net(inputs, returnt='all')
-        # loss_ce1 = self.loss(outputs, labels)
-
-        outputs, features = self.net(inputs, returnt='all')
-        # features = self.net.forward_features(inputs)
+        outputs = self.net(inputs)
         loss_ce1 = self.loss(outputs, labels)
 
-        loss_aux = self.kd_loss.loss_vlm(labels, dataset, features)
         loss = loss_ce1 + loss_aux
 
         self.aux.collate_loss(loss_dict, loss_ce=loss_ce1, loss_aux=loss_aux, m1=True)

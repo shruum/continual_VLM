@@ -133,9 +133,10 @@ class Logger:
             self.accs_mask_classes.append(mean_acc_task_il)
 
     def log_fullacc(self, accs):
-        if self.setting in ['class-il', 'multimodal-class-il']:
+        if self.setting in ['class-il', 'domain-il']:
             acc_class_il, acc_task_il = accs
             self.fullaccs.append(acc_class_il)
+        if self.setting in ['class-il']:
             self.fullaccs_mask_classes.append(acc_task_il)
 
     def write(self, args: Dict[str, Any]) -> None:

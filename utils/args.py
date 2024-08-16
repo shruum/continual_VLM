@@ -65,6 +65,7 @@ def add_management_args(parser: ArgumentParser) -> None:
     parser.add_argument('--nowand', default=0, choices=[0, 1], type=int, help='Inhibit wandb logging')
     parser.add_argument('--wandb_entity', type=str, default='regaz', help='Wandb entity')
     parser.add_argument('--wandb_project', type=str, default='mammoth', help='Wandb project name')
+    parser.add_argument('--save_model', action='store_true')
 
 
 def add_rehearsal_args(parser: ArgumentParser) -> None:
@@ -88,10 +89,15 @@ def add_auxiliary_args(parser: ArgumentParser) -> None:
     parser.add_argument('--loss_wt', nargs='*', type=float, default=[1.0, 1.0, 1.0, 1.0])
     parser.add_argument('--dir_aux', action='store_true')
     parser.add_argument('--buf_aux', action='store_true')
+    parser.add_argument('--rev_proj', action='store_true')
     parser.add_argument('--aug_prob', default=0.0, type=float)
     parser.add_argument('--data_combine', action='store_true')
     parser.add_argument('--loss_mode', type=str, default='l2')
     parser.add_argument('--text_model', type=str, required=True)
+    parser.add_argument('--gpt_path', type=str, required=True, choices=["cl_datasets/metadata/cifar10_descriptions.json",
+                                                                        "/volumes1/datasets/tinyimagenet_description.json",
+                                                                        "/volumes1/datasets/domainnet_description_100.json",
+                                                                        "cl_datasets/metadata/lvis_gpt3_text-davinci-002_descriptions_author.json"])
 
 def add_gcil_args(parser: ArgumentParser) -> None:
     """
