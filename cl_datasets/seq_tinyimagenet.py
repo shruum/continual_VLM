@@ -122,7 +122,7 @@ class SequentialTinyImagenet(ContinualDataset):
                                   (0.2770, 0.2691, 0.2821))])
     # Read the contents of the words and wnids files
     CLASS_ID = {}
-    with open('/volumes1/datasets/tiny-imagenet-200/wnids.txt', 'r') as file:
+    with open('cl_datasets/metadata/wnids.txt', 'r') as file:
         for idx, line in enumerate(file):
             CLASS_ID[idx] = line.strip()
 
