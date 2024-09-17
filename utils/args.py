@@ -22,7 +22,7 @@ def add_experiment_args(parser: ArgumentParser) -> None:
     parser.add_argument('--output_dir', type=str, default='experiments',
                         help='Base directory for logging results.')
     parser.add_argument('--dataset', type=str, required=True,
-                        choices=DATASET_NAMES,
+                        # choices=DATASET_NAMES,
                         help='Which dataset to perform experiments on.')
     parser.add_argument('--mnist_seed', type=int, default=0,
                         help='Seed for reproducible MNIST variants.')
@@ -34,6 +34,8 @@ def add_experiment_args(parser: ArgumentParser) -> None:
                         help='Deg increment for fixed rotated MNIST')
     parser.add_argument('--model', type=str, required=True,
                         help='Model name.', choices=get_all_models())
+    parser.add_argument('--arch', type=str, required=True,
+                        help='Arch name.') #choices=('resnet18','resnet50'))
 
     parser.add_argument('--lr', type=float, required=True,
                         help='Learning rate.')
@@ -45,10 +47,14 @@ def add_experiment_args(parser: ArgumentParser) -> None:
     parser.add_argument('--optim_nesterov', type=int, default=0,
                         help='optimizer nesterov momentum.')
 
+    parser.add_argument('--scheduler', default='None', choices=['None', 'cosine', 'multistep'])
     parser.add_argument('--n_epochs', type=int,
                         help='Batch size.')
     parser.add_argument('--batch_size', type=int,
                         help='Batch size.')
+    parser.add_argument('--llama', default=False)
+    parser.add_argument('--llama_path', default='/volumes1/llama/llama-models/models/llama3_1/Meta-Llama-3.1-8B', type=str)
+    parser.add_argument('--mode', default='normal', choices=['normal', 'vlm', 'madry', 'trades'])
 
 
 def add_management_args(parser: ArgumentParser) -> None:
@@ -90,14 +96,18 @@ def add_auxiliary_args(parser: ArgumentParser) -> None:
     parser.add_argument('--dir_aux', action='store_true')
     parser.add_argument('--buf_aux', action='store_true')
     parser.add_argument('--rev_proj', action='store_true')
+    parser.add_argument('--ser', action='store_true')
     parser.add_argument('--aug_prob', default=0.0, type=float)
     parser.add_argument('--data_combine', action='store_true')
     parser.add_argument('--loss_mode', type=str, default='l2')
-    parser.add_argument('--text_model', type=str, required=True)
-    parser.add_argument('--gpt_path', type=str, required=True, choices=["cl_datasets/metadata/cifar10_descriptions.json",
-                                                                        "/volumes1/datasets/tinyimagenet_description.json",
-                                                                        "/volumes1/datasets/domainnet_description_100.json",
-                                                                        "cl_datasets/metadata/lvis_gpt3_text-davinci-002_descriptions_author.json"])
+    parser.add_argument('--text_model', type=str, required=False)
+    parser.add_argument('--ser_weight', type=float, default=0.1)
+    parser.add_argument('--gpt_path', type=str, required=False)
+    # choices=["cl_datasets/metadata/cifar10_descriptions.json",
+    # "/volumes1/datasets/tinyimagenet_description.json",
+    # "/volumes1/datasets/domainnet_description_100.json",
+    # "cl_datasets/metadata/lvis_gpt3_text-davinci-002_descriptions_author.json",
+    # "/volumes1/datasets/celeba_description.json"])
 
 def add_gcil_args(parser: ArgumentParser) -> None:
     """

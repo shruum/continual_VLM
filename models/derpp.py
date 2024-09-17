@@ -32,7 +32,7 @@ class Derpp(ContinualModel):
 
         self.buffer = Buffer(self.args.buffer_size, self.device)
 
-    def observe(self, inputs, labels, not_aug_inputs):
+    def observe(self, inputs, labels, not_aug_inputs, dataset=None):
 
         self.opt.zero_grad()
         outputs = self.net(inputs)

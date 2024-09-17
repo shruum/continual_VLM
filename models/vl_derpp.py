@@ -63,7 +63,7 @@ class VLDerpp(ContinualModel):
                 self.args.minibatch_size, transform=self.transform)
             buf_outputs = self.net(buf_inputs)
             loss_buf_ce1 = self.args.beta * self.loss(buf_outputs, buf_labels)
-            loss += (self.args.alpha_mm[0] * loss_log_12) + (self.args.beta_mm[0] * loss_buf_ce1)
+            loss += (self.args.beta * loss_buf_ce1)
 
         loss += loss_ce1 + loss_aux
 

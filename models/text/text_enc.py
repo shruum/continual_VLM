@@ -1,6 +1,7 @@
 import json
 import clip
 import torch
+import random
 from transformers import BertTokenizer, BertModel
 from sentence_transformers import SentenceTransformer
 from models.text.text_util import CLIPTEXT
@@ -49,7 +50,7 @@ class TextEncoder():
         text_encoder = CLIPTEXT().to(self.device)
         text_encoder.eval()
         if pretrain:
-            pretrained_model, _ = clip.load("ViT-B/32", device=self.device)
+            pretrained_model, _ = clip.load("ViT-B/32", device=self.device) #RN50
             state_dict = pretrained_model.state_dict()
             to_delete_keys = ["logit_scale", "input_resolution", "context_length", "vocab_size"] + \
                              [k for k in state_dict.keys() if k.startswith('visual.')]
@@ -81,23 +82,32 @@ class TextEncoder():
 
 
 # Function to get text embeddings using TextEncoder class
-def get_text_embeddings(text_encoder, labels, dataset=None, prompt='a '):
-    with open(dataset.args.gpt_path, 'r') as f:
+def get_text_embeddings(model, labels, dataset=None, prompt='a '):
+
+    text_encoder = model.text_encoder
+    with open(model.args.gpt_path, 'r') as f:
         descriptions = json.load(f)
 
-    task = dataset.i
     sentences = []
     for label in labels:
-        if dataset.args.dataset == 'seq-tinyimg':
+        if model.args.dataset == 'seq-tinyimg':
+            task = dataset.i
             cls_idx = dataset.img_paths[task]['class_to_idx']
             class_name = list(cls_idx.keys())[list(cls_idx.values()).index(label)]
             sentences.append(descriptions[class_name])
-        elif dataset.args.dataset == 'dn4il':
+        elif model.args.dataset == 'dn4il':
             class_name = str(label.item())
             sentences.append(descriptions[class_name])
-        elif dataset.args.dataset == 'seq-cifar10':
+        elif model.args.dataset == 'seq-cifar10':
             class_name = dataset.CLASS_ID[label.item()]
             sentences.append(descriptions[class_name][0])
+        elif model.args.dataset == 'cifar10':
+            class_name = dataset.CLASS_ID[label.item()]
+            sentences.append(descriptions[class_name][0])
+        elif model.args.dataset == 'celeba':
+            class_name = dataset.CLASS_ID[label.item()]
+            ind = random.randint(0,4)
+            sentences.append(descriptions[class_name][ind])
         else:
             sentences.append(descriptions[label])
 

@@ -11,6 +11,8 @@ import torch.nn as nn
 from utils.aux_utils import AuxiliaryNet
 from models.text.text_enc import get_text_embeddings
 from torch.nn import functional as F
+from utils.vision_lang import lossVLM
+from copy import deepcopy
 
 def get_parser() -> ArgumentParser:
     parser = ArgumentParser(description='Vision and language Continual learning via Dark Experience Replay.')
@@ -37,29 +39,33 @@ class VLDer(ContinualModel):
 
         self.task = 0
         self.iteration = 0
+        self.kd_loss = lossVLM(self)
+        self.net_old = None
 
-    def observe(self, inputs, labels, not_aug_inputs, class_names=None):
+    def observe(self, inputs, labels, not_aug_inputs, dataset=None):
 
+        loss = 0
         loss_dict = {}
-        loss_log_12 = 0
-
+        inputs, labels = inputs.to(self.device), labels.to(self.device)
         self.opt.zero_grad()
         outputs, features = self.net(inputs, returnt='all')
-        loss_ce1 = loss = self.loss(outputs, labels)
+        loss_ce1 = self.loss(outputs, labels)
+        loss_aux = self.kd_loss.loss_vlm(labels, dataset, features)
 
-        all_text_features = get_text_embeddings(self.text_encoder, labels, self.device, class_names)
-        all_text_features = all_text_features.to(self.device)
-        loss_aux12 = self.aux.loss(features, all_text_features)
-        loss += (loss_aux12 * self.args.loss_wt[0])
+        if self.net_old is not None:
+            # Forward Consistency Loss
+            print("SER loss")
+            outputs_old = self.net_old(inputs)
+            loss += self.args.ser_weight * F.mse_loss(outputs, outputs_old)
 
         if not self.buffer.is_empty():
             buf_inputs, _, buf_logits = self.buffer.get_data(
                 self.args.minibatch_size, transform=self.transform)
             buf_outputs = self.net(buf_inputs)
-            loss_log_12 = F.mse_loss(buf_outputs, buf_logits)
-            loss += (self.args.alpha * loss_log_12)
+            loss += (self.args.alpha * F.mse_loss(buf_outputs, buf_logits))
 
-        self.aux.collate_loss(loss_dict, loss_ce=loss_ce1, loss_aux=loss_aux12, loss_logit_mem=loss_log_12, m1=True)
+        loss += loss_ce1 + loss_aux
+        self.aux.collate_loss(loss_dict, loss_ce=loss_ce1, loss_aux=loss_aux, m1=True)
 
         if hasattr(self, 'writer'):
             for loss_name, loss_item in loss_dict.items():
@@ -79,6 +85,11 @@ class VLDer(ContinualModel):
         print('Saving Model')
         self.task += 1
         self.save_models(dataset)
+
+        # Save old model
+        if self.args.ser:
+            self.net_old = deepcopy(self.net)
+            self.net_old.eval()
 
 
 

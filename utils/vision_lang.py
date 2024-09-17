@@ -57,7 +57,7 @@ class lossVLM():
 
     def loss_vlm(self, labels, dataset, features):
 
-        all_text_features = get_text_embeddings(self.model.text_encoder, labels, dataset)
+        all_text_features = get_text_embeddings(self.model, labels, dataset)
         all_text_features = all_text_features.to(self.device)
 
         loss = 0

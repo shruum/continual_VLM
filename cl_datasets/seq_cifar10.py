@@ -7,12 +7,13 @@ from typing import Tuple
 
 import torch.nn.functional as F
 import torchvision.transforms as transforms
-from backbone.ResNet18 import resnet50
+from backbone.ResNet18 import *
+from backbone.ResNet_mam import *
+from backbone.ResNet_mam_llm import *
 from PIL import Image
 from torchvision.datasets import CIFAR10
 
 import os
-# from cl_datasets.seq_tinyimagenet import base_path
 from cl_datasets.transforms.denormalization import DeNormalize
 from cl_datasets.utils.continual_dataset import (ContinualDataset,
                                               store_masked_loaders)
@@ -101,10 +102,27 @@ class SequentialCIFAR10(ContinualDataset):
             [transforms.ToPILImage(), SequentialCIFAR10.TRANSFORM])
         return transform
 
-    @staticmethod
-    def get_backbone():
-        return resnet50(SequentialCIFAR10.N_CLASSES_PER_TASK
-                            * SequentialCIFAR10.N_TASKS)
+    def get_backbone(self):
+        if self.args.arch == 'resnet50':
+            return resnet50(SequentialCIFAR10.N_CLASSES_PER_TASK
+                                * SequentialCIFAR10.N_TASKS)
+        elif self.args.arch == 'resnet18':
+            return resnet18(SequentialCIFAR10.N_CLASSES_PER_TASK
+                                * SequentialCIFAR10.N_TASKS)
+        elif self.args.arch == 'resnet18mam':
+            return resnet18mam(SequentialCIFAR10.N_CLASSES_PER_TASK
+                                * SequentialCIFAR10.N_TASKS)
+        elif self.args.arch == 'resnet50mam':
+            return resnet50mam(SequentialCIFAR10.N_CLASSES_PER_TASK
+                                * SequentialCIFAR10.N_TASKS)
+        elif self.args.arch == 'resnet18mamllm':
+            return resnet18mamllm(SequentialCIFAR10.N_CLASSES_PER_TASK
+                                * SequentialCIFAR10.N_TASKS)
+        elif self.args.arch == 'resnet50mamllm':
+            return resnet50mamllm(SequentialCIFAR10.N_CLASSES_PER_TASK
+                                * SequentialCIFAR10.N_TASKS)
+        else:
+            raise (RuntimeError("architecture type not found"))
 
     @staticmethod
     def get_loss():

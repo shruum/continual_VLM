@@ -44,7 +44,7 @@ class ContinualDataset:
 
     @staticmethod
     @abstractmethod
-    def get_backbone() -> nn.Module:
+    def get_backbone(self) -> nn.Module:
         """
         Returns the backbone to be used for to the current dataset.
         """
@@ -119,11 +119,9 @@ def store_masked_loaders(train_dataset: datasets, test_dataset: datasets,
     train_mask = np.logical_and(np.array(train_dataset.targets) >= setting.i,
         np.array(train_dataset.targets) < setting.i + setting.N_CLASSES_PER_TASK)
     test_mask = np.logical_and(np.array(test_dataset.targets) >= setting.i,
-        np.array(test_dataset.targets) < setting.i + setting.N_CLASSES_PER_TASK)
-
+            np.array(test_dataset.targets) < setting.i + setting.N_CLASSES_PER_TASK)
     train_dataset.data = train_dataset.data[train_mask]
     test_dataset.data = test_dataset.data[test_mask]
-
     train_dataset.targets = np.array(train_dataset.targets)[train_mask]
     test_dataset.targets = np.array(test_dataset.targets)[test_mask]
 

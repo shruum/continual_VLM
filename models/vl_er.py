@@ -7,9 +7,10 @@ import torch
 from models.utils.continual_model import ContinualModel
 from utils.args import *
 from utils.buffer import Buffer
-import torch.nn as nn
+from copy import deepcopy
 from utils.aux_utils import AuxiliaryNet
 from utils.vision_lang import lossVLM
+import torch.nn.functional as F
 
 def get_parser() -> ArgumentParser:
     parser = ArgumentParser(description='Vision and language Continual learning via Experience Replay.')
@@ -34,6 +35,7 @@ class VLER(ContinualModel):
         self.task = 0
         self.iteration = 0
         self.kd_loss = lossVLM(self)
+        self.net_old = None
 
     def observe(self, inputs, labels, not_aug_inputs, dataset=None):
 
@@ -44,6 +46,11 @@ class VLER(ContinualModel):
 
         outputs, features = self.net(inputs, returnt='all')
         loss_aux = self.kd_loss.loss_vlm(labels, dataset, features)
+
+        if self.net_old is not None:
+            # Forward Consistency Loss
+            outputs_old = self.net_old(inputs)
+            loss += self.args.ser_weight * F.mse_loss(outputs, outputs_old)
 
         if not self.buffer.is_empty():
             buf_inputs, buf_labels = self.buffer.get_data(
@@ -73,6 +80,11 @@ class VLER(ContinualModel):
         print('Saving Model')
         self.task += 1
         self.save_models(dataset)
+
+        # Save old model
+        if self.args.ser:
+            self.net_old = deepcopy(self.net)
+            self.net_old.eval()
 
 
 

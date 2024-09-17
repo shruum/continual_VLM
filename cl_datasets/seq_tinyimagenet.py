@@ -9,6 +9,7 @@ import torchvision.transforms as transforms
 from torchvision import datasets
 from torch.utils.data import Dataset
 from backbone.ResNet18 import resnet18, resnet50
+from backbone.ResNet_mam import resnet18mam, resnet50mam
 import torch.nn.functional as F
 # from utils.conf import base_path_dataset as base_path
 from PIL import Image
@@ -172,11 +173,21 @@ class SequentialTinyImagenet(ContinualDataset):
         self.i += 1 #self.N_CLASSES_PER_TASK
         return train, test
 
-    @staticmethod
-    def get_backbone():
-        return resnet50(SequentialTinyImagenet.N_CLASSES_PER_TASK
+    def get_backbone(self):
+        if self.args.arch == 'resnet18':
+            return resnet18(SequentialTinyImagenet.N_CLASSES_PER_TASK
                         * SequentialTinyImagenet.N_TASKS)
-
+        elif self.args.arch == 'resnet50':
+            return resnet50(SequentialTinyImagenet.N_CLASSES_PER_TASK
+                        * SequentialTinyImagenet.N_TASKS)
+        elif self.args.arch == 'resnet18mam':
+            return resnet18mam(SequentialTinyImagenet.N_CLASSES_PER_TASK
+                        * SequentialTinyImagenet.N_TASKS)
+        elif self.args.arch == 'resnet50mam':
+            return resnet50mam(SequentialTinyImagenet.N_CLASSES_PER_TASK
+                        * SequentialTinyImagenet.N_TASKS)
+        else:
+            raise (RuntimeError("architecture type not found"))
 
     @staticmethod
     def get_loss():

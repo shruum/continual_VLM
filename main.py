@@ -31,6 +31,7 @@ from utils.conf import set_random_seed
 import torch
 import uuid
 import datetime
+from pathlib import Path
 
 
 def lecun_fix():
@@ -45,6 +46,8 @@ def parse_args():
     parser = ArgumentParser(description='mammoth', allow_abbrev=False)
     parser.add_argument('--model', type=str, required=True,
                         help='Model name.', choices=get_all_models())
+    parser.add_argument('--arch', type=str, required=True,
+                        help='Arch name.')# choices=('resnet18','resnet50'))
     parser.add_argument('--dataset', type=str, required=True,
                         choices=DATASET_NAMES,
                         help='Which dataset to perform experiments on.')
@@ -103,6 +106,21 @@ def main(args=None):
     if args is None:
         args = parse_args()
 
+    # Check if CUDA is available
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    print(f"DEVICE IS {device}")
+    # If CUDA is available, print detailed GPU information
+    if torch.cuda.is_available():
+        print(f"Number of GPUs: {torch.cuda.device_count()}")
+        for i in range(torch.cuda.device_count()):
+            print(f"Device {i}: {torch.cuda.get_device_name(i)}")
+            print(f"  Memory Allocated: {torch.cuda.memory_allocated(i)} bytes")
+            print(f"  Memory Cached: {torch.cuda.memory_reserved(i)} bytes")
+            print(f"  Current Memory Allocated: {torch.cuda.memory_allocated(i)} bytes")
+            print(f"  Current Memory Cached: {torch.cuda.memory_reserved(i)} bytes")
+    else:
+        print("CUDA is not available. Using CPU.")
+
     os.putenv("MKL_SERVICE_FORCE_INTEL", "1")
     os.putenv("NPY_MKL_FORCE_INTEL", "1")
 
@@ -120,6 +138,16 @@ def main(args=None):
         args.minibatch_size = dataset.get_minibatch_size()
 
     backbone = dataset.get_backbone()
+    if args.llama:
+        print("Loading LLaMA checkpoints")
+        checkpoints = sorted(Path(args.llama_path).glob("*.pth"))
+        print(checkpoints)
+        ckpt_path = checkpoints[0]
+        print(ckpt_path)
+        checkpoint = torch.load(ckpt_path, map_location="cpu") #
+        backbone.llama.custom_load_state_dict(checkpoint, tail=True, strict=True) #.to(device)
+        backbone.llama.to(device)
+
     loss = dataset.get_loss()
     model = get_model(args, backbone, loss, dataset.get_transform())
 

@@ -2,7 +2,8 @@ import os
 import numpy as np
 import torchvision.transforms as transforms
 from torch.utils.data import DataLoader, Dataset
-from backbone.ResNet18 import resnet50
+from backbone.ResNet18 import resnet50, resnet18
+from backbone.ResNet_mam import resnet18mam, resnet50mam
 import torch.nn.functional as F
 from utils.conf import base_path_img
 from cl_datasets.utils.continual_dataset import ContinualDataset, store_domain_loaders
@@ -121,9 +122,17 @@ class DN4IL(ContinualDataset):
         # return DataLoader(self.train_loader.dataset,
         #                   batch_size=batch_size, shuffle=True)
 
-    @staticmethod
-    def get_backbone():
-        return resnet50(DN4IL.N_CLASSES_PER_TASK)
+    def get_backbone(self):
+        if self.args.arch == 'resnet18':
+            return resnet18(DN4IL.N_CLASSES_PER_TASK)
+        elif self.args.arch == 'resnet50':
+            return resnet50(DN4IL.N_CLASSES_PER_TASK)
+        elif self.args.arch == 'resnet18mam':
+            return resnet18mam(DN4IL.N_CLASSES_PER_TASK)
+        elif self.args.arch == 'resnet50mam':
+            return resnet50mam(DN4IL.N_CLASSES_PER_TASK)
+        else:
+            raise (RuntimeError("architecture type not found"))
 
     def get_transform(self):
         transform = transforms.Compose(
