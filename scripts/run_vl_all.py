@@ -5,17 +5,18 @@ import itertools
 # Define parameters
 lst_buffer_size = [200, 500]  # Example: [100, 200, 500]
 lst_arch = ['resnet18mam'] # 'resnet50mam']
-# lst_lr = [0.03]
+lst_lr = [0.03, 0.05, 0.1]
 num_runs = 1
 start_seed = 42
-datasets = ["seq-tinyimg"] #["seq-cifar10", "dn4il", "seq-tinyimg"]
+datasets = ["seq-cifar10"] #, "seq-tinyimg"] # "dn4il"] #, "seq-tinyimg"]
 loss_types = ['sim']  # Example: ['kl']
 loss_wt_lst = [6.0, 10.0, 14.0] #, 15.0]
-text_enc_lst = ['sent_transf']  # Example: ['bert']
+epochs = [50, 100]
+text_enc_lst = ['sent_transf', 'clip']  # Example: ['bert']
 gpt_path_lst = {
     "seq-cifar10": 'cl_datasets/metadata/cifar10_descriptions.json',
-    "seq-tinyimg": '/volumes1/datasets/tinyimagenet_description.json',
-    "dn4il": '/volumes1/datasets/domainnet_description_100.json'
+    "seq-tinyimg": 'cl_datasets/metadata/tinyimagenet_description.json',
+    # "dn4il": '/volumes1/datasets/domainnet_description_100.json'
 }
 dataset_dir_lst = {
     "seq-cifar10" : "/volumes1/datasets/cifar",
@@ -26,7 +27,7 @@ dataset_dir_lst = {
 log_file = "error_log_method.txt"
 
 model_params = {
-    'vl_er': {'lr': '0.1', 'epochs':'100', 'alpha': None, 'beta': None, 'c': None, 'xi': None, 'buffer_size': 200, 'minibatch_size': 32},
+    'vl_er': {'lr': '0.1', 'epochs':'100', 'alpha': None, 'beta': None, 'c': None, 'xi': None, 'minibatch_size': 32},
     'vl_der': {'lr': '0.03', 'epochs':'100','alpha': '0.3', 'beta': None, 'c': None, 'xi': None, 'minibatch_size': 32},
     # 'vl_derpp': {'lr': '0.03', 'alpha': '0.1', 'beta': '0.5', 'c': None, 'xi': None, 'minibatch_size': 32},
     # 'vl_si': {'lr': '0.03', 'alpha': None, 'beta': None, 'c': '0.5', 'xi': '1.0', 'minibatch_size': None}
@@ -34,7 +35,8 @@ model_params = {
 
 # Create a list of all combinations
 combinations = list(itertools.product(
-    # lst_lr,
+    lst_lr,
+    epochs,
     text_enc_lst,
     loss_types,
     loss_wt_lst,
@@ -50,20 +52,18 @@ def handle_error(exp_id):
         f.write(f"{exp_id}\n")
 
 # Iterate over combinations
-for text_enc, loss_mode, loss_wt, dataset, arch, seed in combinations:
+for lr, epochs, text_enc, loss_mode, loss_wt, dataset, arch, seed in combinations:
     for model in model_params.keys():
         for buffer_size in lst_buffer_size if model != 'vl_si' else [None]:
             alpha = model_params[model]['alpha']
             beta = model_params[model]['beta']
             c = model_params[model]['c']
             xi = model_params[model]['xi']
-            lr = model_params[model]['lr']
-            epochs = model_params[model]['epochs']
             minibatch_size = model_params[model]['minibatch_size']
             dataset_dir = dataset_dir_lst[dataset]
 
             exp_id = (
-                f"revproj-{model}-{arch}-{dataset}-desc-{buffer_size}--e-{epochs}-l-{loss_mode}-{loss_wt}-text-{text_enc}-s-{seed}"
+                f"revproj-{model}-{arch}-{dataset}-desc-{buffer_size}--e-{epochs}-l{lr}-{loss_wt}-text-{text_enc}-s-{seed}"
             )
             print(f"Running experiment {exp_id}")
 
@@ -84,7 +84,7 @@ for text_enc, loss_mode, loss_wt, dataset, arch, seed in combinations:
                 "--ignore_other_metrics", "1",
                 "--wandb_project", "continual_VLM",
                 "--wandb_entity", "sngowda42",
-                "--output_dir", "/volumes1/vlm-cl/results_final",
+                "--output_dir", "results_final",
                 "--loss_mode", loss_mode,
                 '--gpt_path', gpt_path_lst[dataset],
                 "--rev_proj",
