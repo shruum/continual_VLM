@@ -18,11 +18,11 @@ from utils.loggers import *
 from utils.status import ProgressBar
 import numpy as np
 
-try:
-    import wandb
-    wandb.login(key='fa9d5ad248f922603618680d1197fcb953d7d32e')
-except ImportError:
-    wandb = None
+# try:
+#     import wandb
+#     wandb.login(key='fa9d5ad248f922603618680d1197fcb953d7d32e')
+# except ImportError:
+#     wandb = None
 
 def mask_classes(outputs: torch.Tensor, dataset: ContinualDataset, k: int) -> None:
     """
@@ -154,6 +154,9 @@ def train(model: ContinualModel, dataset: ContinualDataset,
                     loss = model.meta_observe(inputs, labels, not_aug_inputs, dataset) #class id for vlm
                 assert not math.isnan(loss)
                 progress_bar.prog(i, len(train_loader), epoch, t, loss)
+
+            if hasattr(model, 'end_epoch'):
+                model.end_epoch(dataset)
 
             if scheduler is not None:
                 scheduler.step()

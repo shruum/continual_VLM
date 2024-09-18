@@ -11,6 +11,7 @@ from copy import deepcopy
 from utils.aux_utils import AuxiliaryNet
 from utils.vision_lang import lossVLM
 import torch.nn.functional as F
+from torch.optim import SGD
 
 def get_parser() -> ArgumentParser:
     parser = ArgumentParser(description='Vision and language Continual learning via Experience Replay.')
@@ -18,7 +19,8 @@ def get_parser() -> ArgumentParser:
     add_experiment_args(parser)
     add_rehearsal_args(parser)
     add_auxiliary_args(parser)
-
+    parser.add_argument('--use_lr_scheduler', type=int, default=0)
+    parser.add_argument('--lr_steps', type=int, nargs='*', default=[70, 90])
     return parser
 
 
@@ -31,6 +33,8 @@ class VLER(ContinualModel):
         self.buffer = Buffer(self.args.buffer_size, self.device)
         self.aux = AuxiliaryNet(self.args, self.device)
         self.addit_models = ['net']
+
+        self.get_optimizer()
 
         self.task = 0
         self.iteration = 0
@@ -81,12 +85,24 @@ class VLER(ContinualModel):
         self.task += 1
         self.save_models(dataset)
 
+        # reset optimizer
+        self.get_optimizer()
+
         # Save old model
         if self.args.ser:
             self.net_old = deepcopy(self.net)
             self.net_old.eval()
+    def get_optimizer(self):
+        # reset optimizer
+        self.opt = SGD(self.net.parameters(), lr=self.args.lr)
+        if self.args.use_lr_scheduler:
+            # Pass through Buffer
+            self.scheduler = torch.optim.lr_scheduler.MultiStepLR(self.opt, self.args.lr_steps, gamma=0.1)
+        else:
+            self.scheduler = None
 
-
-
+    def end_epoch(self, dataset):
+        if self.scheduler is not None:
+            self.scheduler.step()
 
 

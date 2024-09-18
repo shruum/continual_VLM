@@ -107,7 +107,7 @@ def main(args=None):
         args = parse_args()
 
     # Check if CUDA is available
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    device = torch.device(args.device if torch.cuda.is_available() else "cpu")
     print(f"DEVICE IS {device}")
     # If CUDA is available, print detailed GPU information
     if torch.cuda.is_available():

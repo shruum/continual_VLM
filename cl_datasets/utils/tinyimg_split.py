@@ -54,7 +54,7 @@ def divide_into_tasks(root_path, task_count=10):
     nb_classes_task = 200 // task_count
     assert 200 % nb_classes_task == 0, "Total 200 classes must be divisible by number of classes per task"
 
-    file_path = os.path.join(root_path, "wnids.txt")
+    file_path = r"cl_datasets/metadata/wnids.txt"
     lines = [line.rstrip('\n') for line in open(file_path)]
     assert len(lines) == 200, "Should have 200 classes, but {} lines in wnids.txt".format(len(lines))
     subsets = ['train', 'val']

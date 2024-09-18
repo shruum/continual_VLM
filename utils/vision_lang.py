@@ -3,7 +3,7 @@ import torch.nn.functional as F
 from torch import nn
 
 from models.text.text_enc import get_text_embeddings
-from utils.cka import cka_similarity
+# from utils.cka import cka_similarity
 
 TEX_DIM = {
     "sent_transf": 384,

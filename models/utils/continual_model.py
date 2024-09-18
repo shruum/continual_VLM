@@ -58,7 +58,7 @@ class ContinualModel(nn.Module):
         self.args = args
         self.transform = transform
         self.opt = SGD(self.net.parameters(), lr=self.args.lr)
-        self.device = get_device()
+        self.device = torch.device(args.device)
         self.task = 0
         if "vl" in self.NAME:
             self.text_model = args.text_model

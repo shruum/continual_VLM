@@ -55,6 +55,7 @@ def add_experiment_args(parser: ArgumentParser) -> None:
     parser.add_argument('--llama', default=False)
     parser.add_argument('--llama_path', default='/volumes1/llama/llama-models/models/llama3_1/Meta-Llama-3.1-8B', type=str)
     parser.add_argument('--mode', default='normal', choices=['normal', 'vlm', 'madry', 'trades'])
+    parser.add_argument('--device', default='cuda:0')
 
 
 def add_management_args(parser: ArgumentParser) -> None:

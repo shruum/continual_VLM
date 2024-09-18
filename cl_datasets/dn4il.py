@@ -5,7 +5,7 @@ from torch.utils.data import DataLoader, Dataset
 from backbone.ResNet18 import resnet50, resnet18
 from backbone.ResNet_mam import resnet18mam, resnet50mam
 import torch.nn.functional as F
-from utils.conf import base_path_img
+# from utils.conf import base_path_img
 from cl_datasets.utils.continual_dataset import ContinualDataset, store_domain_loaders
 from cl_datasets.transforms.denormalization import DeNormalize
 from PIL import Image
