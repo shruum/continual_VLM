@@ -138,7 +138,7 @@ def main(args=None):
         args.minibatch_size = dataset.get_minibatch_size()
 
     backbone = dataset.get_backbone()
-    if args.llama:
+    if args.llama == True:
         print("Loading LLaMA checkpoints")
         checkpoints = sorted(Path(args.llama_path).glob("*.pth"))
         print(checkpoints)

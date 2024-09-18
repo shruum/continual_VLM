@@ -21,8 +21,9 @@ model_params = {
 }
 modes = [ "vlm"] #, ["normal","vlm"]
 
+lst_lr = [0.05, 0.1]
 loss_types = ['sim']  # Example: ['kl']
-loss_wt_lst = [3.0, 9.0, 15.0]
+loss_wt_lst = [18.0, 22.0, 26.0]
 text_enc_lst = ['sent_transf']  # Example: ['bert']
 gpt_path_lst = {
     "cifar10": 'cl_datasets/metadata/cifar10_descriptions.json',
@@ -32,6 +33,7 @@ gpt_path_lst = {
 # Create a list of all combinations
 combinations = list(itertools.product(
     modes,
+    lst_lr,
     text_enc_lst,
     loss_types,
     loss_wt_lst,
@@ -47,9 +49,9 @@ def handle_error(exp_id, error_message):
         f.write(f"Experiment ID: {exp_id}\nError Message: {error_message}\n\n")
 
 # Iterate over combinations
-for mode, text_enc, loss_mode, loss_wt, dataset, arch, seed in combinations:
+for mode, lr, text_enc, loss_mode, loss_wt, dataset, arch, seed in combinations:
     # Set model parameters
-    lr = model_params[dataset]['lr']
+    # lr = model_params[dataset]['lr']
     epochs = model_params[dataset]['epochs']
     batch_size = model_params[dataset]['batch_size']
     wd = model_params[dataset]['wd']
@@ -61,7 +63,7 @@ for mode, text_enc, loss_mode, loss_wt, dataset, arch, seed in combinations:
         )
     else:
         exp_id = (
-            f"revproj-{mode}-{arch}-{dataset}-desc-e-{epochs}-l-{loss_mode}-{loss_wt}-text-{text_enc}-s-{seed}"
+            f"revproj-{mode}-{arch}-{dataset}-desc-e-{epochs}-l-{lr}-{loss_wt}-text-{text_enc}-s-{seed}"
         )
     print(f"Running experiment {exp_id}")
 
@@ -72,7 +74,7 @@ for mode, text_enc, loss_mode, loss_wt, dataset, arch, seed in combinations:
         "--model", "er",
         "--dataset", dataset,
         "--dataset_dir", dataset_dir,
-        "--lr", lr,
+        "--lr", str(lr),
         "--n_epochs", epochs,
         "--batch_size", "128",
         "--tensorboard", "1",
@@ -80,7 +82,7 @@ for mode, text_enc, loss_mode, loss_wt, dataset, arch, seed in combinations:
         "--ignore_other_metrics", "1",
         "--wandb_project", "continual_VLM",
         "--wandb_entity", "sngowda42",
-        "--output_dir", "/volumes1/vlm-cl/baseline_final",
+        "--output_dir", "/volumes1/vlm-cl/normal_cls",
         "--arch", arch,
         "--scheduler", "cosine",
         "--seed", str(seed),

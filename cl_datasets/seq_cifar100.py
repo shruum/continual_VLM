@@ -2,7 +2,7 @@
 # All rights reserved.
 # This source code is licensed under the license found in the
 # LICENSE file in the root directory of this source tree.
-
+import json
 from typing import Tuple
 
 import torch.nn.functional as F
@@ -76,10 +76,14 @@ class SequentialCIFAR100(ContinualDataset):
              transforms.ToTensor(),
              transforms.Normalize((0.5071, 0.4867, 0.4408),
                                   (0.2675, 0.2565, 0.2761))])
+    # CLASS_ID = {}
+    # with open('cl_datasets/metadata/cifar100_class_mapping.json', 'r') as file:
+    #     CLASS_ID = json.load(file)
 
     def __init__(self, args: Namespace) -> None:
         super(SequentialCIFAR100, self).__init__(args)
-        num_cls = SequentialCIFAR100.N_TASKS * SequentialCIFAR100.N_CLASSES_PER_TASK
+
+        num_cls = 100 #SequentialCIFAR100.N_TASKS * SequentialCIFAR100.N_CLASSES_PER_TASK
         SequentialCIFAR100.N_TASKS = args.n_tasks_cif
         SequentialCIFAR100.N_CLASSES_PER_TASK = num_cls // args.n_tasks_cif
         assert SequentialCIFAR100.N_TASKS * SequentialCIFAR100.N_CLASSES_PER_TASK == num_cls, \

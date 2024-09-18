@@ -101,6 +101,9 @@ def get_text_embeddings(model, labels, dataset=None, prompt='a '):
         elif model.args.dataset == 'seq-cifar10':
             class_name = dataset.CLASS_ID[label.item()]
             sentences.append(descriptions[class_name][0])
+        elif model.args.dataset == 'seq-cifar100':
+            class_id = str(label.item())
+            sentences.append(descriptions[class_id][0])
         elif model.args.dataset == 'cifar10':
             class_name = dataset.CLASS_ID[label.item()]
             sentences.append(descriptions[class_name][0])
