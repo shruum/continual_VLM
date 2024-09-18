@@ -32,6 +32,7 @@ model_params = {
 
 # Create a list of all combinations
 combinations = list(itertools.product(
+    tasks_cif,
     lst_lr,
     epochs,
     text_enc_lst,
@@ -49,7 +50,7 @@ def handle_error(exp_id):
         f.write(f"{exp_id}\n")
 
 # Iterate over combinations
-for lr, epochs, text_enc, loss_mode, loss_wt, dataset, arch, seed in combinations:
+for n_tasks_cif, lr, epochs, text_enc, loss_mode, loss_wt, dataset, arch, seed in combinations:
     for model in model_params.keys():
         for buffer_size in lst_buffer_size if model != 'vl_si' else [None]:
             alpha = model_params[model]['alpha']
@@ -60,7 +61,7 @@ for lr, epochs, text_enc, loss_mode, loss_wt, dataset, arch, seed in combination
             dataset_dir = dataset_dir_lst[dataset]
 
             exp_id = (
-                f"revproj-{model}-{arch}-{dataset}-desc-{buffer_size}--e-{epochs}-l{lr}-{loss_wt}-text-{text_enc}-s-{seed}"
+                f"revproj-{model}-{arch}-{dataset}-{tasks_cif}-desc-{buffer_size}--e-{epochs}-l{lr}-{loss_wt}-text-{text_enc}-s-{seed}"
             )
             print(f"Running experiment {exp_id}")
 
@@ -87,6 +88,7 @@ for lr, epochs, text_enc, loss_mode, loss_wt, dataset, arch, seed in combination
                 "--rev_proj",
                 "--arch", arch,
                 "--seed", str(seed),
+                "--n_tasks_cif", str(n_tasks_cif),
             ]
             # Add model-specific arguments
             if buffer_size is not None:
