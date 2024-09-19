@@ -103,6 +103,11 @@ def add_auxiliary_args(parser: ArgumentParser) -> None:
     parser.add_argument('--loss_mode', type=str, default='l2')
     parser.add_argument('--text_model', type=str, required=False)
     parser.add_argument('--ser_weight', type=float, default=0.1)
+
+    parser.add_argument('--perc', type=float, default=1.0)
+    parser.add_argument('--gamma', type=int, default=-1)
+    parser.add_argument('--corrupt_prob', type=float, default=0.0)
+
     parser.add_argument('--gpt_path', type=str, required=False)
     # choices=["cl_datasets/metadata/cifar10_descriptions.json",
     # "/volumes1/datasets/tinyimagenet_description.json",

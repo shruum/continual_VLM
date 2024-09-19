@@ -2,7 +2,7 @@ import os
 import torchvision
 from torchvision import datasets, transforms
 from norm_datasets.utils import celeb_indicies, CelebA_Wrapper
-
+from norm_datasets.cifar_imbalance import CIFAR10ImbalancedNoisy
 class CIFAR10:
     """
     CIFAR-10 dataset
@@ -128,6 +128,45 @@ class CelebA:
 
         return ds
 
+class CIFAR10_Imb:
+    """
+    CIFAR-10 dataset
+    """
+    CLASS_NAMES = ['airplane', 'automobile', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck']
+    CLASS_ID = {0: "car (automobile)", 1: "airplane", 2: "bird", 3: "cat", 4: "deer", 5: "dog",
+                6: "frog", 7: "horse", 8: "cargo ship", 9: "truck"}
+    NUM_CLASSES = 10
+    MEAN = [0.4914, 0.4822, 0.4465]
+    STD = [0.2023, 0.1994, 0.2010]
+    SIZE = 32
+
+    def __init__(self, data_path, perc=1.0, gamma=-1, corrupt_prob=0.0):
+        self.data_path = data_path
+        self.transform_train = transforms.Compose([
+            transforms.RandomCrop(32, padding=4),  # Random crop with padding for augmentation
+            transforms.RandomHorizontalFlip(),  # Random horizontal flip
+            transforms.ToTensor(),  # Convert image to tensor
+            transforms.Normalize(mean=CIFAR10.MEAN,std=CIFAR10.STD)
+        ])
+        self.transform_test = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize(mean=CIFAR10.MEAN,std=CIFAR10.STD)
+        ])
+
+        self.perc = perc
+        self.gamma = gamma
+        self.corrupt_prob = corrupt_prob
+
+    def get_dataset(self, split, transform_train, transform_test):
+        print('==> Preparing CIFAR 10 data..')
+
+        assert split in ['train', 'test']
+        if split == 'test':
+            ds = CIFAR10ImbalancedNoisy(corrupt_prob=0.0, gamma=-1, n_min=250, n_max=5000, num_classes=10, perc=1.0, root=self.data_path, train=False, download=True, transform=self.transform_test, )
+        else:
+            ds = CIFAR10ImbalancedNoisy(corrupt_prob=self.corrupt_prob, gamma=self.gamma, n_min=250, n_max=5000, num_classes=10, perc=self.perc, root=self.data_path, train=True, download=True, transform=self.transform_train)
+
+        return ds
 
 
 DATASETS = {
@@ -135,6 +174,7 @@ DATASETS = {
     'cifar100': CIFAR100,
     # 'tinyimagenet': TinyImagenet,
     'celeba' : CelebA,
+    'cifar10_imb': CIFAR10_Imb,
     # 'col_mnist': coloredMNIST,
     # 'cor_cifar10': Corrupt_CIFAR10,
     # 'cor_tinyimagenet':Corrupt_TinyImagenet

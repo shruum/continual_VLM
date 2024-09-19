@@ -82,7 +82,10 @@ def main_normal(args=None):
     args.conf_timestamp = str(datetime.datetime.now())
     args.conf_host = socket.gethostname()
 
-    dataset = DATASETS[args.dataset](args.dataset_dir)
+    if args.dataset == 'cifar10_imb':
+        dataset = DATASETS[args.dataset](args.dataset_dir, args.perc, args.gamma, args.corrupt_prob)
+    else:
+        dataset = DATASETS[args.dataset](args.dataset_dir)
     if args.n_epochs is None and isinstance(dataset, ContinualDataset):
         args.n_epochs = dataset.get_epochs()
     if args.batch_size is None:

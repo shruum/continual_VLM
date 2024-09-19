@@ -9,7 +9,7 @@ dataset = "dn4il"
 loss_types = ['sim', 'kl'] #, 'l2']  # ['nce', 'l2']
 loss_wt_lst = [2.0, 6.0, 12.0, 15.0]
 text_enc_lst = ['sent_transf'] #, 'bert', 'clip']
-log_file = "error_log.txt"
+log_file = "../error_log.txt"
 lr_lst = [0.1, 0.03]
 
 # Function to handle errors

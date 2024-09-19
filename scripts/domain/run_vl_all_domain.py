@@ -15,7 +15,7 @@ gpt_path_lst = {
     "seq-cifar10": 'cl_datasets/metadata/cifar10_descriptions.json',
     "dn4il": '/volumes1/datasets/domainnet_description_100.json'
 }
-log_file = "error_log.txt"
+log_file = "../error_log.txt"
 
 model_params = {
     'vl_er': {'alpha': None, 'beta': None, 'c': None, 'xi': None},

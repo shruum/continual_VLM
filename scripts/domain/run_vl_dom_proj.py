@@ -4,21 +4,24 @@ import itertools
 
 # Define parameters
 lst_buffer_size = [200] #500]  # Example: [100, 200, 500]
-tasks_cif = [5, 10, 20]
 lst_arch = ['resnet18mam'] # 'resnet50mam']
 lst_lr = [0.03, 0.1]
 num_runs = 1
 start_seed = 42
-datasets = ["seq-cifar100"]
+datasets = ["dn4il"] #, "seq-tinyimg"] # "dn4il"] #, "seq-tinyimg"]
 loss_types = ['sim']  # Example: ['kl']
 loss_wt_lst = [10.0, 15.0, 20.0] #, 15.0]
 epochs = [50]
 text_enc_lst = ['sent_transf', 'clip']  # Example: ['bert']
 gpt_path_lst = {
-    "seq-cifar100": 'cl_datasets/metadata/cifar100_descriptions.json',
+    "seq-cifar10": 'cl_datasets/metadata/cifar10_descriptions.json',
+    "seq-tinyimg": 'cl_datasets/metadata/tinyimagenet_description.json',
+    "dn4il": '/volumes1/datasets/domainnet_description_100.json'
 }
 dataset_dir_lst = {
-    "seq-cifar100" : "/volumes1/datasets/cifar",
+    "seq-cifar10" : "/volumes1/datasets/cifar",
+    "seq-tinyimg" : "/volumes1/datasets/tiny-imagenet-200",
+    "dn4il": "/volumes1/datasets/DN4IL"
 }
 
 log_file = "error_log_method.txt"
@@ -32,7 +35,6 @@ model_params = {
 
 # Create a list of all combinations
 combinations = list(itertools.product(
-    tasks_cif,
     lst_lr,
     epochs,
     text_enc_lst,
@@ -50,7 +52,7 @@ def handle_error(exp_id):
         f.write(f"{exp_id}\n")
 
 # Iterate over combinations
-for n_tasks_cif, lr, epochs, text_enc, loss_mode, loss_wt, dataset, arch, seed in combinations:
+for lr, epochs, text_enc, loss_mode, loss_wt, dataset, arch, seed in combinations:
     for model in model_params.keys():
         for buffer_size in lst_buffer_size if model != 'vl_si' else [None]:
             alpha = model_params[model]['alpha']
@@ -61,7 +63,7 @@ for n_tasks_cif, lr, epochs, text_enc, loss_mode, loss_wt, dataset, arch, seed i
             dataset_dir = dataset_dir_lst[dataset]
 
             exp_id = (
-                f"revproj-{model}-{arch}-{dataset}-{n_tasks_cif}-desc-{buffer_size}--e-{epochs}-l{lr}-{loss_wt}-text-{text_enc}-s-{seed}"
+                f"{model}-{arch}-{dataset}-desc-{buffer_size}--e-{epochs}-l{lr}-{loss_wt}-text-{text_enc}-s-{seed}"
             )
             print(f"Running experiment {exp_id}")
 
@@ -85,10 +87,8 @@ for n_tasks_cif, lr, epochs, text_enc, loss_mode, loss_wt, dataset, arch, seed i
                 "--output_dir", "results_final",
                 "--loss_mode", loss_mode,
                 '--gpt_path', gpt_path_lst[dataset],
-                "--rev_proj",
                 "--arch", arch,
                 "--seed", str(seed),
-                "--n_tasks_cif", str(n_tasks_cif),
             ]
             # Add model-specific arguments
             if buffer_size is not None:
