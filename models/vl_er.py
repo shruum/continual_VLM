@@ -49,7 +49,8 @@ class VLER(ContinualModel):
         self.opt.zero_grad()
 
         outputs, features = self.net(inputs, returnt='all')
-        loss_aux = self.kd_loss.loss_vlm(labels, dataset, features)
+        if self.args.loss_loc == 'before':
+            loss_aux = self.kd_loss.loss_vlm(labels, dataset, features)
 
         if self.net_old is not None:
             # Forward Consistency Loss
@@ -62,8 +63,11 @@ class VLER(ContinualModel):
             inputs = torch.cat((inputs, buf_inputs))
             labels = torch.cat((labels, buf_labels))
 
-        outputs = self.net(inputs)
+        outputs, features = self.net(inputs, returnt='all')
         loss_ce1 = self.loss(outputs, labels)
+
+        if self.args.loss_loc == 'after':
+            loss_aux = self.kd_loss.loss_vlm(labels, dataset, features)
 
         loss = loss_ce1 + loss_aux
 
@@ -92,6 +96,7 @@ class VLER(ContinualModel):
         if self.args.ser:
             self.net_old = deepcopy(self.net)
             self.net_old.eval()
+
     def get_optimizer(self):
         # reset optimizer
         self.opt = SGD(self.net.parameters(), lr=self.args.lr)
