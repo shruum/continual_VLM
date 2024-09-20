@@ -109,6 +109,8 @@ def add_auxiliary_args(parser: ArgumentParser) -> None:
     parser.add_argument('--corrupt_prob', type=float, default=0.0)
 
     parser.add_argument('--gpt_path', type=str, required=False)
+    parser.add_argument('--loss_loc', type=str, default='before', choices=['before', 'after'])
+
     # choices=["cl_datasets/metadata/cifar10_descriptions.json",
     # "/volumes1/datasets/tinyimagenet_description.json",
     # "/volumes1/datasets/domainnet_description_100.json",
