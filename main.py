@@ -105,7 +105,6 @@ def main(args=None):
     lecun_fix()
     if args is None:
         args = parse_args()
-
     # Check if CUDA is available
     device = torch.device(args.device if torch.cuda.is_available() else "cpu")
     print(f"DEVICE IS {device}")
@@ -124,6 +123,7 @@ def main(args=None):
     os.putenv("MKL_SERVICE_FORCE_INTEL", "1")
     os.putenv("NPY_MKL_FORCE_INTEL", "1")
 
+    print("STARTING NOW")
     # Add uuid, timestamp and hostname for logging
     args.conf_jobnum = str(uuid.uuid4())
     args.conf_timestamp = str(datetime.datetime.now())
