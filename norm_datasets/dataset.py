@@ -1,7 +1,7 @@
 import os
 import torchvision
 from torchvision import datasets, transforms
-from norm_datasets.utils import celeb_indicies, CelebA_Wrapper
+from norm_datasets.utils import celeb_indicies, cif_tint, ImageFilelist
 from norm_datasets.cifar_imbalance import CIFAR10ImbalancedNoisy
 class CIFAR10:
     """
@@ -28,14 +28,14 @@ class CIFAR10:
             transforms.Normalize(mean=CIFAR10.MEAN,std=CIFAR10.STD)
         ])
 
-    def get_dataset(self, split, transform_train, transform_test):
+    def get_dataset(self, split, transform_train=None, transform_test=None):
         print('==> Preparing CIFAR 10 data..')
 
         assert split in ['train', 'test']
         if split == 'test':
-            ds = datasets.CIFAR10(root=self.data_path, train=False, download=True, transform=self.transform_test)
+            ds = datasets.CIFAR10(root=self.data_path, train=False, download=False, transform=self.transform_test)
         else:
-            ds = datasets.CIFAR10(root=self.data_path, train=True, download=True, transform=self.transform_train)
+            ds = datasets.CIFAR10(root=self.data_path, train=True, download=False, transform=self.transform_train)
 
         return ds
 
@@ -62,35 +62,16 @@ class CIFAR100:
             transforms.Normalize(mean=CIFAR100.MEAN,std=CIFAR100.STD)
         ])
 
-    def get_dataset(self, split, transform_train, transform_test, transform_train_fp=None, transform_test_fp=None):
+    def get_dataset(self, split, transform_train, transform_test):
         print('==> Preparing CIFAR 100 data..')
 
         assert split in ['train', 'test']
         if split == 'test':
-
-            ds = datasets.CIFAR100(root=self.data_path, train=False, download=True, transform=transform_test)
+            ds = datasets.CIFAR100(root=self.data_path, train=False, download=False, transform=self.transform_test)
         else:
-            ds = datasets.CIFAR10(root=self.data_path, train=True, download=True, transform=transform_train)
+            ds = datasets.CIFAR100(root=self.data_path, train=True, download=False, transform=self.transform_train)
 
         return ds
-# class TinyImagenet():
-#     NUM_CLASSES = 200
-#     MEAN = [0.4802, 0.4481, 0.3975]
-#     STD = [0.2302, 0.2265, 0.2262]
-#     SIZE = 64
-#     SOBEL_UPSAMPLE_SIZE = 128
-#
-#     def __init__(self, data_path):
-#         self.data_path = data_path
-#
-#     def get_dataset(self, split, transform_train, transform_test):
-#         assert split in ['train', 'test']
-#         if split == 'test':
-#             ds = ImageFilelist(root=self.data_path, flist=os.path.join(self.data_path, "val_kv_list.txt"), transform=transform_test,)
-#         else:
-#             ds = ImageFilelist(root=self.data_path, flist=os.path.join(self.data_path, "train_kv_list.txt"), transform=transform_train)
-#
-#         return ds
 
 class CelebA:
     NUM_CLASSES = 2
@@ -113,15 +94,15 @@ class CelebA:
                 transforms.Normalize(mean=CelebA.MEAN,std=CelebA.STD),
             ])
 
-    def get_dataset(self, split, transform_train, transform_test,unlabel_skew=True):
+    def get_dataset(self, split, transform_train=None, transform_test=None,unlabel_skew=True):
         assert split in ['train', 'val', 'test', 'unlabeled']
 
         if split == 'test':
-            ds = datasets.CelebA(root=self.data_path, split='test', transform=transform_test)
+            ds = datasets.CelebA(root=self.data_path, split='test', transform=self.transform_test)
         # elif split == 'val':
         #     ds = torchvision.norm_datasets.CelebA(root=self.data_path, split='valid', transform=trans)
         else:
-            ds = datasets.CelebA(root=self.data_path, split='valid', transform=transform_train)
+            ds = datasets.CelebA(root=self.data_path, split='valid', transform=self.transform_train)
         attr_names = ds.attr_names
         attr_names_map = {a: i for i, a in enumerate(attr_names)}
         ds = celeb_indicies(split, ds, attr_names_map, unlabel_skew)
@@ -168,13 +149,76 @@ class CIFAR10_Imb:
 
         return ds
 
+class CIFARTint():
+    CLASS_NAMES = ['airplane', 'automobile', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck']
+    CLASS_ID = {0: "car (automobile)", 1: "airplane", 2: "bird", 3: "cat", 4: "deer", 5: "dog",
+                6: "frog", 7: "horse", 8: "cargo ship", 9: "truck"}
+    NUM_CLASSES = 10
+    MEAN = [0.4192, 0.4124, 0.3804]
+    STD = [0.2714, 0.2679, 0.2771]
+    SIZE = 96
+
+    def __init__(self, data_path):
+        self.data_path = data_path
+        self.cif_dataset = CIFAR10(self.data_path)
+        self.transform_train = transforms.Compose([
+            transforms.ToPILImage(),
+            transforms.RandomCrop(32, padding=4),  # Random crop with padding for augmentation
+            transforms.RandomHorizontalFlip(),  # Random horizontal flip
+            transforms.ToTensor(),  # Convert image to tensor
+            transforms.Normalize(mean=CIFAR10.MEAN,std=CIFAR10.STD)
+        ])
+        self.transform_test = transforms.Compose([
+            transforms.ToPILImage(),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=CIFAR10.MEAN,std=CIFAR10.STD)
+        ])
+    def get_dataset(self, split, transform_train, transform_test):
+        dataset = self.cif_dataset.get_dataset(split)
+        if split == 'train':
+            ds = cif_tint(dataset, split=split, transform=transform_train)
+        else:
+            ds = cif_tint(dataset, split=split, transform=transform_test)
+
+        return ds
+
+class TinyImagenet():
+    NUM_CLASSES = 200
+    MEAN = [0.4802, 0.4481, 0.3975]
+    STD = [0.2302, 0.2265, 0.2262]
+    SIZE = 64
+    SOBEL_UPSAMPLE_SIZE = 128
+
+    def __init__(self, data_path):
+        self.data_path = data_path
+        self.transform_train = transforms.Compose(
+            [transforms.RandomCrop(64, padding=4),
+             transforms.RandomHorizontalFlip(),
+             transforms.ToTensor(),
+            transforms.Normalize(mean=TinyImagenet.MEAN,std=TinyImagenet.STD),
+            ])
+        self.transform_test = transforms.Compose([
+                transforms.ToTensor(),
+                transforms.Normalize(mean=TinyImagenet.MEAN,std=TinyImagenet.STD),
+            ])
+
+    def get_dataset(self, split, transform_train, transform_test):
+        assert split in ['train', 'test']
+        if split == 'test':
+            ds = torchvision.datasets.ImageFolder(root=os.path.join(self.data_path, 'test'), transform=self.transform_test)
+        else:
+            ds = torchvision.datasets.ImageFolder(root=os.path.join(self.data_path, 'train'), transform=self.transform_train)
+
+        self.CLASS_ID = ds.class_to_idx
+        return ds
 
 DATASETS = {
     'cifar10': CIFAR10,
     'cifar100': CIFAR100,
-    # 'tinyimagenet': TinyImagenet,
+    'tinyimagenet': TinyImagenet,
     'celeba' : CelebA,
     'cifar10_imb': CIFAR10_Imb,
+    'cifartint': CIFARTint,
     # 'col_mnist': coloredMNIST,
     # 'cor_cifar10': Corrupt_CIFAR10,
     # 'cor_tinyimagenet':Corrupt_TinyImagenet

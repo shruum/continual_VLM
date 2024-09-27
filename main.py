@@ -138,16 +138,6 @@ def main(args=None):
         args.minibatch_size = dataset.get_minibatch_size()
 
     backbone = dataset.get_backbone()
-    if args.llama == True:
-        print("Loading LLaMA checkpoints")
-        checkpoints = sorted(Path(args.llama_path).glob("*.pth"))
-        print(checkpoints)
-        ckpt_path = checkpoints[0]
-        print(ckpt_path)
-        checkpoint = torch.load(ckpt_path, map_location="cpu") #
-        backbone.llama.custom_load_state_dict(checkpoint, tail=True, strict=True) #.to(device)
-        backbone.llama.to(device)
-
     loss = dataset.get_loss()
     model = get_model(args, backbone, loss, dataset.get_transform())
 

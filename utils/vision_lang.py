@@ -55,9 +55,9 @@ class lossVLM():
             nn.Linear(self.img_hdim, self.img_dim),
         ).to(self.device)
 
-    def loss_vlm(self, labels, dataset, features):
+    def loss_vlm(self, labels, dataset, features, dataloader=None):
 
-        all_text_features = get_text_embeddings(self.model, labels, dataset)
+        all_text_features = get_text_embeddings(self.model, labels, dataset, dataloader)
         all_text_features = all_text_features.to(self.device)
 
         loss = 0

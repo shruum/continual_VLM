@@ -40,6 +40,7 @@ def add_experiment_args(parser: ArgumentParser) -> None:
     parser.add_argument('--lr', type=float, required=True,
                         help='Learning rate.')
 
+    parser.add_argument('--opt', type=str, default='sgd')
     parser.add_argument('--optim_wd', type=float, default=0.,
                         help='optimizer weight decay.')
     parser.add_argument('--optim_mom', type=float, default=0.,
@@ -52,7 +53,8 @@ def add_experiment_args(parser: ArgumentParser) -> None:
                         help='Batch size.')
     parser.add_argument('--batch_size', type=int,
                         help='Batch size.')
-    parser.add_argument('--llama', default=False)
+    parser.add_argument('--llama', action='store_true')
+    parser.add_argument('--llm_block', type=str, default='clip')
     parser.add_argument('--llama_path', default='/volumes1/llama/llama-models/models/llama3_1/Meta-Llama-3.1-8B', type=str)
     parser.add_argument('--mode', default='normal', choices=['normal', 'vlm', 'madry', 'trades'])
     parser.add_argument('--device', default='cuda:0')
@@ -105,7 +107,7 @@ def add_auxiliary_args(parser: ArgumentParser) -> None:
     parser.add_argument('--ser_weight', type=float, default=0.1)
 
     parser.add_argument('--perc', type=float, default=1.0)
-    parser.add_argument('--gamma', type=int, default=-1)
+    parser.add_argument('--gamma', type=float, default=-1)
     parser.add_argument('--corrupt_prob', type=float, default=0.0)
 
     parser.add_argument('--gpt_path', type=str, required=False)

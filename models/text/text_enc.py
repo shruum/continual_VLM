@@ -82,7 +82,7 @@ class TextEncoder():
 
 
 # Function to get text embeddings using TextEncoder class
-def get_text_embeddings(model, labels, dataset=None, prompt='a '):
+def get_text_embeddings(model, labels, dataset=None, dataloader=None, prompt='a '):
 
     text_encoder = model.text_encoder
     with open(model.args.gpt_path, 'r') as f:
@@ -98,7 +98,7 @@ def get_text_embeddings(model, labels, dataset=None, prompt='a '):
         elif model.args.dataset == 'dn4il':
             class_name = str(label.item())
             sentences.append(descriptions[class_name])
-        elif model.args.dataset == 'seq-cifar10':
+        elif model.args.dataset == 'seq-cifar10' or model.args.dataset == 'seq-cifar10-vit' or model.args.dataset == 'cifartint':
             class_name = dataset.CLASS_ID[label.item()]
             sentences.append(descriptions[class_name][0])
         elif model.args.dataset == 'seq-cifar100':
@@ -117,6 +117,10 @@ def get_text_embeddings(model, labels, dataset=None, prompt='a '):
             class_name = dataset.CLASS_ID[label.item()]
             ind = random.randint(0,4)
             sentences.append(descriptions[class_name][ind])
+        elif model.args.dataset == 'tinyimagenet':
+            CLASS_ID = dataloader.dataset.class_to_idx
+            class_name = list(CLASS_ID.keys())[label.item()]
+            sentences.append(descriptions[class_name])
         else:
             sentences.append(descriptions[label])
 

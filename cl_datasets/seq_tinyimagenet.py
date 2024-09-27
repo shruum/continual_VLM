@@ -9,6 +9,7 @@ import torchvision.transforms as transforms
 from torchvision import datasets
 from torch.utils.data import Dataset
 from backbone.ResNet18 import resnet18, resnet50
+from backbone.ResNet_mam_llm import *
 from backbone.ResNet_mam import resnet18mam, resnet50mam
 import torch.nn.functional as F
 # from utils.conf import base_path_dataset as base_path
@@ -186,6 +187,9 @@ class SequentialTinyImagenet(ContinualDataset):
         elif self.args.arch == 'resnet50mam':
             return resnet50mam(SequentialTinyImagenet.N_CLASSES_PER_TASK
                         * SequentialTinyImagenet.N_TASKS)
+        elif self.args.arch == 'resnet18mamllm':
+            return resnet18mamllm(SequentialTinyImagenet.N_CLASSES_PER_TASK
+                                * SequentialTinyImagenet.N_TASKS, 64, self.args.llm_block)
         else:
             raise (RuntimeError("architecture type not found"))
 

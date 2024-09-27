@@ -3,7 +3,7 @@ import csv
 import numpy as np
 from tqdm import tqdm
 import torch
-from torch.optim import SGD
+from torch.optim import SGD, Adam, AdamW
 from torch.utils.tensorboard import SummaryWriter
 import torch.nn.functional as F
 
@@ -88,7 +88,11 @@ def train_normal(args, dataset, model):
     test_loader = torch.utils.data.DataLoader(testset, batch_size=args.batch_size,
                                               shuffle=False, num_workers=args.num_workers)
 
-    optimizer = SGD(model.backbone.parameters(), lr=args.lr, momentum=0.9, weight_decay=args.optim_wd)
+    if args.arch == 'resnet18mamllm':
+        optimizer = AdamW(model.backbone.parameters(), lr=args.lr, betas=(0.9,0.98), eps=1e-6,weight_decay=args.optim_wd) #lr=5e-5,betas=(0.9,0.98),eps=1e-6,weight_decay=0.2)
+    else:
+        optimizer = SGD(model.backbone.parameters(), lr=args.lr, momentum=0.9, weight_decay=args.optim_wd)
+
 
     scheduler = None
     if args.scheduler == 'multistep':

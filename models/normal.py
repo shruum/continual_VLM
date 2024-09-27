@@ -50,7 +50,7 @@ class Normal:
                 loss = cross_entropy(out, target)
             elif self.args.mode == 'vlm':
                 loss = cross_entropy(out, target)
-                loss += self.vlm_loss.loss_vlm(target, self.dataset, features)
+                loss += self.vlm_loss.loss_vlm(target, self.dataset, features, train_loader)
             # perform back propagation
             loss.backward()
             optimizer.step()

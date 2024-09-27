@@ -4,12 +4,12 @@
 # LICENSE file in the root directory of this source tree.
 
 from typing import Tuple
-
+import clip
 import torch.nn.functional as F
 import torchvision.transforms as transforms
 from backbone.ResNet18 import *
 from backbone.ResNet_mam import *
-# from backbone.ResNet_mam_llm import *
+from backbone.ResNet_mam_llm import *
 from PIL import Image
 from torchvision.datasets import CIFAR10
 
@@ -115,12 +115,9 @@ class SequentialCIFAR10(ContinualDataset):
         elif self.args.arch == 'resnet50mam':
             return resnet50mam(SequentialCIFAR10.N_CLASSES_PER_TASK
                                 * SequentialCIFAR10.N_TASKS)
-        # elif self.args.arch == 'resnet18mamllm':
-        #     return resnet18mamllm(SequentialCIFAR10.N_CLASSES_PER_TASK
-        #                         * SequentialCIFAR10.N_TASKS)
-        # elif self.args.arch == 'resnet50mamllm':
-        #     return resnet50mamllm(SequentialCIFAR10.N_CLASSES_PER_TASK
-        #                         * SequentialCIFAR10.N_TASKS)
+        elif self.args.arch == 'resnet18mamllm':
+            return resnet18mamllm(SequentialCIFAR10.N_CLASSES_PER_TASK
+                                * SequentialCIFAR10.N_TASKS, 64, self.args.llm_block)
         else:
             raise (RuntimeError("architecture type not found"))
 

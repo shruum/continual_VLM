@@ -1,0 +1,2 @@
+lgix-seq-cifar10-resnet18mamllm-sent_transf-seq-cifar10-b-200--l0.0001-e-100-l0.0001--s-42
+lgix-vl_er-resnet18mamllm-sent_transf-seq-cifar10-b-200--l0.0001-e-100-l0.0001--s-42
