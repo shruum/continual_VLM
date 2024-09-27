@@ -10,7 +10,8 @@ from copy import deepcopy
 import torch
 import torch.nn as nn
 import torchvision
-from torch.optim import SGD
+from torch.optim import SGD, AdamW
+
 
 from utils.conf import get_device
 from utils.magic import persistent_locals
@@ -54,10 +55,15 @@ class ContinualModel(nn.Module):
         super(ContinualModel, self).__init__()
 
         self.net = backbone
+        if args.arch == 'clip_vit':
+            self.net = self.net.float()
         self.loss = loss
         self.args = args
         self.transform = transform
-        self.opt = SGD(self.net.parameters(), lr=self.args.lr)
+        if self.args.arch == 'resnet18mamllm':
+            self.opt = AdamW(self.net.parameters(), lr=self.args.lr, betas=(0.9, 0.98), eps=1e-6, weight_decay=args.optim_wd)
+        else:
+            self.opt = SGD(self.net.parameters(), lr=self.args.lr)
         self.device = torch.device(args.device)
         self.task = 0
         if "vl" in self.NAME:

@@ -10,7 +10,128 @@ from functools import partial
 import torch.utils.data as data
 from typing import Any, Callable, List, Optional, Tuple
 import torch.utils.data as data_utils
+from torch.utils.data import TensorDataset, DataLoader
 
+
+VALID_SPURIOUS = [
+    'TINT',  # apply a fixed class-wise tinting (meant to not affect shape)
+]
+
+def default_loader(path):
+    return Image.open(path).convert('RGB')
+
+def default_flist_reader(flist, sep):
+    """
+    flist format: impath label\nimpath label\n ...(same to caffe's filelist)
+    """
+    imlist = []
+    with open(flist, 'r') as rf:
+        for line in rf.readlines():
+            impath, imlabel = line.strip().split(sep)
+            imlist.append((impath, int(imlabel)))
+
+    return imlist
+
+def path_flist_reader(root, flist, sep):
+    """
+    flist format: impath label\nimpath label\n ...(same to caffe's filelist)
+    """
+    imlist = []
+    with open(flist, 'r') as rf:
+        for line in rf.readlines():
+            items = line.strip().split(sep)
+            impath, imlabel = items
+            imlist.append((os.path.join(root, impath), int(imlabel)))
+
+    return imlist
+def subset_flist_reader(flist, sep, class_list):
+    """
+    flist format: impath label\nimpath label\n ...(same to caffe's filelist)
+    """
+    imlist = []
+    with open(flist, 'r') as rf:
+        for line in rf.readlines():
+            impath, imlabel = line.strip().split(sep)
+            if int(imlabel) in class_list.keys():
+                imlist.append((impath, int(imlabel)))
+
+    return imlist
+def folder_reader(data_dir):
+    all_img_files = []
+    all_labels = []
+
+    class_names = os.walk(data_dir).__next__()[1]
+    for index, class_name in enumerate(class_names):
+        label = index
+        img_dir = os.path.join(data_dir, class_name)
+        img_files = os.walk(img_dir).__next__()[2]
+
+        for img_file in img_files:
+            img_file = os.path.join(img_dir, img_file)
+            img = Image.open(img_file)
+            if img is not None:
+                all_img_files.append(img_file)
+                all_labels.append(int(label))
+
+    return all_img_files, all_labels
+def subset_folder_reader(data_dir, flist):
+    all_img_files = []
+    all_labels = []
+
+    with open(flist, 'r') as rf:
+        for line in rf.readlines():
+            imfolder, imlabel = line.strip().split(' ')
+            class_name = imfolder
+            label = imlabel
+            img_dir = os.path.join(data_dir, class_name)
+            img_files = os.walk(img_dir).__next__()[2]
+
+            for img_file in img_files:
+                img_file = os.path.join(img_dir, img_file)
+                img = Image.open(img_file)
+                if img is not None:
+                    all_img_files.append(img_file)
+                    all_labels.append(int(label))
+
+    return all_img_files, all_labels
+class ImageFilelist(torch.utils.data.Dataset):
+    def __init__(self, root, flist=None, folderlist=None, subset_folderlist=None, transform=None, target_transform=None,
+                 flist_reader=default_flist_reader, loader=default_loader, sep=' '):
+        self.root = root
+        self.imlist = []
+        if flist:
+            self.imlist = flist_reader(flist,sep)
+            #self.imlist = style_flist_reader(root, flist,sep)
+
+        elif subset_folderlist:
+            self.images, self.labels = subset_folder_reader(folderlist, subset_folderlist)
+        else:
+            self.images, self.labels = folder_reader(folderlist)
+
+        self.transform = transform
+        self.target_transform = target_transform
+        self.loader = loader
+
+    def __getitem__(self, index):
+
+        if self.imlist:
+            impath, target = self.imlist[index]
+            img = self.loader(os.path.join(self.root, impath))
+        else:
+            img = self.loader(self.images[index])
+            target = self.labels[index]
+
+        img_fp = img
+
+        if self.transform is not None:
+            img = self.transform(img)
+        if self.target_transform is not None:
+            target = self.target_transform(target)
+
+        return img, target
+
+    def __len__(self):
+        return len(self.imlist) if self.imlist else len(self.images)
 class VisionDataset(data.Dataset):
     _repr_indent = 4
 
@@ -302,6 +423,56 @@ def celeb_indicies(split, ds, attr_names_map, unlabel_skew=True):
 
     print(split, len(indices))
     if split == 'test':
-        return data_utils.TensorDataset(torch.stack(imgs), torch.tensor(ys))#, torch.tensor(is_blonde))
+        return data_utils.TensorDataset(torch.stack(imgs), torch.tensor(ys), torch.tensor(is_blonde))
     else:
         return data_utils.TensorDataset(torch.stack(imgs), torch.tensor(ys))
+
+def add_spurious(ds, mode):
+    assert mode in VALID_SPURIOUS
+
+    loader = DataLoader(ds, batch_size=32, num_workers=1,
+                        pin_memory=False, shuffle=False)
+
+    xs, ys = [], []
+    for x, y in loader:
+        xs.append(x)
+        ys.append(y)
+    xs = torch.cat(xs)
+    ys = torch.cat(ys)
+
+    colors = torch.tensor([(2, 1, 0), (1, 2, 0), (1, 1, 0),
+                           (0, 2, 1), (0, 1, 2), (0, 1, 1),
+                           (1, 0, 2), (2, 0, 1), (1, 0, 1),
+                           (1, 1, 1)])
+
+    colors = colors / torch.sum(colors + 0.0, dim=1, keepdim=True)
+    xs_tint = (xs + colors[ys].unsqueeze(-1).unsqueeze(-1) / 3).clamp(0, 1)
+
+    return TensorDataset(xs_tint, ys)
+
+class cif_tint(torch.utils.data.Dataset):
+    def __init__(self, dataset, split, transform=None, target_transform=None, style=False):
+        self.dataset = add_spurious(dataset, 'TINT') if split =='train' else dataset
+        self.dataset_orig = dataset
+
+        self.transform = transform
+        self.target_transform = target_transform
+        self.style = style
+        # if self.style:
+        #     self.style_dataset = stylize(self.dataset)
+
+    def __getitem__(self, index):
+        # if self.style:
+        #     img, target = self.style_dataset[index]
+        img, target = self.dataset[index]
+        #torchvision.utils.save_image(img,'/volumes2/feature_prior_project/images/stltint_style/{}.jpg'.format(target))
+        if self.transform is not None:
+            img = self.transform(img)
+        if self.target_transform is not None:
+            target = self.target_transform(target)
+
+        return img, target
+
+    def __len__(self):
+        return len(self.dataset)
+

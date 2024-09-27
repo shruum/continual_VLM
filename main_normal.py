@@ -22,6 +22,7 @@ from cl_datasets import ContinualDataset
 from utils.best_args import best_args
 from utils.conf import set_random_seed
 from backbone.ResNet18 import *
+from backbone.ResNet_mam_llm import resnet18mamllm
 from backbone.ResNet_mam import *
 import torch
 import uuid
@@ -29,6 +30,8 @@ import datetime
 from norm_datasets.dataset import DATASETS
 from utils.normal_training import train_normal
 from models.normal import Normal
+import clip
+
 def lecun_fix():
     # Yann moved his website to CloudFlare. You need this now
     from six.moves import urllib  # pyright: ignore
@@ -92,7 +95,10 @@ def main_normal(args=None):
         args.batch_size = dataset.get_batch_size()
 
     cifar_resnet = True
-    backbone = resnet18mam(dataset.NUM_CLASSES).to(device)
+    if args.llama:
+        backbone = resnet18mamllm(dataset.NUM_CLASSES, 64, args.llm_block).to(device)
+    else:
+        backbone = resnet18mam(dataset.NUM_CLASSES).to(device)
     model = Normal(args, backbone, dataset, device)
 
     if args.debug_mode:

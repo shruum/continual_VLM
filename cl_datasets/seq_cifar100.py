@@ -8,7 +8,9 @@ from typing import Tuple
 import torch.nn.functional as F
 import torch.optim
 import torchvision.transforms as transforms
-from backbone.ResNet18 import resnet18
+from backbone.ResNet18 import *
+from backbone.ResNet_mam import *
+from backbone.ResNet_mam_llm import *
 from PIL import Image
 from torchvision.datasets import CIFAR100
 
@@ -120,10 +122,21 @@ class SequentialCIFAR100(ContinualDataset):
             [transforms.ToPILImage(), SequentialCIFAR100.TRANSFORM])
         return transform
 
-    @staticmethod
-    def get_backbone():
-        return resnet18(SequentialCIFAR100.N_CLASSES_PER_TASK
+    def get_backbone(self):
+        if self.args.arch == 'resnet18':
+            return resnet18(SequentialCIFAR100.N_CLASSES_PER_TASK
                         * SequentialCIFAR100.N_TASKS)
+        elif self.args.arch == 'resnet18mam':
+            return resnet18mam(SequentialCIFAR100.N_CLASSES_PER_TASK
+                           * SequentialCIFAR100.N_TASKS)
+        elif self.args.arch == 'resnet50mam':
+            return resnet50mam(SequentialCIFAR100.N_CLASSES_PER_TASK
+                       * SequentialCIFAR100.N_TASKS)
+        elif self.args.arch == 'resnet18mamllm':
+            return resnet18mamllm(SequentialCIFAR100.N_CLASSES_PER_TASK
+                          * SequentialCIFAR100.N_TASKS, 64, self.args.llm_block)
+        else:
+            raise (RuntimeError("architecture type not found"))
 
     @staticmethod
     def get_loss():
