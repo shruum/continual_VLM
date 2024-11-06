@@ -124,7 +124,7 @@ class SequentialTinyImagenet(ContinualDataset):
     # Read the contents of the words and wnids files
     CLASS_ID = {}
     with open('cl_datasets/metadata/wnids.txt', 'r') as file:
-        for idx, line in enumerate(file):
+     for idx, line in enumerate(file):
             CLASS_ID[idx] = line.strip()
 
     def __init__(self,args):
