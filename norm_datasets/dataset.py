@@ -314,18 +314,27 @@ class Imagenet100():
                 transforms.ToTensor(),
                 transforms.Normalize(mean=Imagenet100.MEAN,std=Imagenet100.STD),
             ])
+        with open(os.path.join(self.data_path, "Labels.json"), 'r') as f:
+            labels = json.load(f)
+        self.class_to_idx_unified = {class_name: idx for idx, class_name in enumerate(labels.keys())}
 
     def get_dataset(self, split, transform_train=None, transform_test=None):
         assert split in ['train', 'test']
 
         if split == 'train':
-            train_subdirs = [os.path.join(self.data_path, f'train.X{i}') for i in range(1, 5)]
-            train_datasets = [torchvision.datasets.ImageFolder(subdir, transform=transform_train) for subdir in train_subdirs]
-            ds = ConcatDataset(train_datasets)
+            # train_datasets = []
+            # train_subdirs = [os.path.join(self.data_path, f'train.X{i}') for i in range(1, 5)]
+            # for subdir in train_subdirs:
+            #     dataset = torchvision.datasets.ImageFolder(subdir, transform=transform_train)
+            #     dataset.class_to_idx = self.class_to_idx_unified
+            #     dataset.classes = list(self.class_to_idx_unified.keys())
+            #     train_datasets.append(dataset)
+            # ds = ConcatDataset(train_datasets)
+            ds = torchvision.datasets.ImageFolder(root=os.path.join(self.data_path, 'train'), transform=self.transform_train)
         else:
             ds = torchvision.datasets.ImageFolder(os.path.join(self.data_path, 'val.X'), transform=transform_test)
 
-        # self.CLASS_ID = ds.class_to_idx
+        self.CLASS_ID = ds.class_to_idx
         # with open('/volumes1/datasets/tiny-imagenet-200/tiny-class-id', 'w') as f:
         #     json.dump(ds.class_to_idx, f)
 
