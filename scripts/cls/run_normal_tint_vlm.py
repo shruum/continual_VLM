@@ -22,14 +22,15 @@ model_params = {
     "celeba": {'lr': '0.1', 'epochs': '100', 'wd': '0.0005', 'batch_size': 128},
 
 }
-modes = ["normal"] #,"normal"]
+modes = ["vlm"] #,"normal"]
 
 lst_lr = [0.05]
 loss_types = ['sim']  # Example: ['kl']
-loss_wt_lst = [20.0, 50.0, 80.0]
+loss_wt_lst = [20.0, 50.0]
 text_enc_lst = ['sent_transf']  # Example: ['bert']
 gpt_path_lst = {
     "cifar10": 'cl_datasets/metadata/cifar10_descriptions.json',
+    "cifartint": 'cl_datasets/metadata/cifar10_descriptions.json',
     "cifar100": 'cl_datasets/metadata/cifar100_descriptions.json',
     "celeba": '/volumes1/datasets/celeba_description.json',
 
@@ -37,10 +38,10 @@ gpt_path_lst = {
 # Create a list of all combinations
 combinations = list(itertools.product(
     modes,
-    # lst_lr,
-    # text_enc_lst,
-    # loss_types,
-    # loss_wt_lst,
+    lst_lr,
+    text_enc_lst,
+    loss_types,
+    loss_wt_lst,
     datasets,
     lst_arch,
     range(start_seed, start_seed + num_runs)
@@ -53,7 +54,7 @@ def handle_error(exp_id, error_message):
         f.write(f"Experiment ID: {exp_id}\nError Message: {error_message}\n\n")
 
 # Iterate over combinations
-for mode, dataset, arch, seed in combinations:
+for mode, lr, text_enc, loss_mode, loss_wt, dataset, arch, seed in combinations:
     # Set model parameters
     lr = model_params[dataset]['lr']
     epochs = model_params[dataset]['epochs']
@@ -66,10 +67,9 @@ for mode, dataset, arch, seed in combinations:
             f"{mode}-{arch}-{dataset}-desc--e-{epochs}-s-{seed}"
         )
     else:
-        pass
-        # exp_id = (
-        #     f"{mode}-{arch}-{dataset}-desc-e-{epochs}-l-{lr}-{loss_wt}-text-{text_enc}-s-{seed}"
-        # )
+        exp_id = (
+            f"{mode}-{arch}-{dataset}-desc-e-{epochs}-l-{lr}-{loss_wt}-text-{text_enc}-s-{seed}"
+        )
     print(f"Running experiment {exp_id}")
 
     # Construct the command
@@ -92,6 +92,10 @@ for mode, dataset, arch, seed in combinations:
         "--scheduler", "cosine",
         "--seed", str(seed),
         "--optim_wd", wd,
+        "--text_model", text_enc,
+        "--loss_wt", str(loss_wt), str(loss_wt), str(loss_wt), str(loss_wt),
+        "--loss_mode", loss_mode,
+        '--gpt_path', gpt_path_lst[dataset],
         "--mode", mode,
     ]
 

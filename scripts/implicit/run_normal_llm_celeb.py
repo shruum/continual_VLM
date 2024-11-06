@@ -3,24 +3,27 @@ import os
 import itertools
 
 
-datasets = ['celeba'] # 'celeba']
+datasets = ['cifartint'] # 'celeba']
 dataset_dir_lst = { 'cifar10' : '/volumes1/datasets/cifar/CIFAR10',
-                   'cifar100': '/volumes1/datasets/cifar/CIFAR100',
+                    'cifartint': '/volumes1/datasets/cifar/CIFAR10',
+                    'cifar100': '/volumes1/datasets/cifar/CIFAR100',
                    'celeba': '/volumes1/datasets/celeba'
                    }
 # Define parameters
 lst_arch = ['resnet18mamllm'] #'resnet18mam'
-num_runs = 1
-start_seed = 42
+num_runs = 3
+start_seed = 0
 log_file = "../cls/error_log.txt"
 
 model_params = {
     "cifar10" : {'lr': '0.1', 'epochs':'100', 'wd':'0.0005', 'batch_size':128},
     "cifar100": {'lr': '0.1', 'epochs': '100', 'wd': '0.0005', 'batch_size': 128},
+    "cifartint": {'lr': '0.1', 'epochs': '100', 'wd': '0.0005', 'batch_size': 128},
     "celeba": {'lr': '0.1', 'epochs': '100', 'wd': '0.0005', 'batch_size': 128},
 }
-lr_lst = [0.0001, 0.001, 0.01]
+lr_lst = [0.001] #0.001, 0.01]
 epoch_lst = [100]
+llm_block = "sent_transf"
 # wd_lst = [0.1, 0.001, 0.0001]
 
 modes = [ "normal"] #["normal"] #, "vlm"]
@@ -49,7 +52,7 @@ for mode, lr, epochs, dataset, arch, seed in combinations:
     wd = model_params[dataset]['wd']
     dataset_dir = dataset_dir_lst[dataset]
 
-    exp_id = f"{mode}-{arch}-{dataset}-desc--l{lr}-e-{epochs}-s-{seed}"
+    exp_id = f"ix-{mode}-{arch}-{llm_block}-{dataset}-desc--l{lr}-e-{epochs}-s-{seed}"
     print(f"Running experiment {exp_id}")
     # Construct the command
     cmd = [
@@ -73,6 +76,7 @@ for mode, lr, epochs, dataset, arch, seed in combinations:
         "--optim_wd", wd,
         "--mode", mode,
         "--llama",
+        "--llm_block", llm_block
     ]
 
     try:

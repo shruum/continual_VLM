@@ -1,8 +1,11 @@
 import os
+import json
 import torchvision
 from torchvision import datasets, transforms
-from norm_datasets.utils import celeb_indicies, cif_tint, ImageFilelist
+from norm_datasets.utils import celeb_indicies, cif_tint, MappedImageFolder
 from norm_datasets.cifar_imbalance import CIFAR10ImbalancedNoisy
+from torch.utils.data import DataLoader, ConcatDataset
+
 class CIFAR10:
     """
     CIFAR-10 dataset
@@ -187,7 +190,6 @@ class TinyImagenet():
     MEAN = [0.4802, 0.4481, 0.3975]
     STD = [0.2302, 0.2265, 0.2262]
     SIZE = 64
-    SOBEL_UPSAMPLE_SIZE = 128
 
     def __init__(self, data_path):
         self.data_path = data_path
@@ -202,15 +204,133 @@ class TinyImagenet():
                 transforms.Normalize(mean=TinyImagenet.MEAN,std=TinyImagenet.STD),
             ])
 
-    def get_dataset(self, split, transform_train, transform_test):
+    def get_dataset(self, split, transform_train=None, transform_test=None):
         assert split in ['train', 'test']
         if split == 'test':
-            ds = torchvision.datasets.ImageFolder(root=os.path.join(self.data_path, 'test'), transform=self.transform_test)
+            # ds = TinyImageNetValWithLabels(root=self.data_path, annotations_file=os.path.join(self.data_path, 'val', 'val_annotations.txt'),transform=self.transform_test)
+            ds = torchvision.datasets.ImageFolder(root=os.path.join(self.data_path, 'val'), transform=self.transform_test)
         else:
             ds = torchvision.datasets.ImageFolder(root=os.path.join(self.data_path, 'train'), transform=self.transform_train)
 
         self.CLASS_ID = ds.class_to_idx
+        # with open('/volumes1/datasets/tiny-imagenet-200/tiny-class-id', 'w') as f:
+        #     json.dump(ds.class_to_idx, f)
+
         return ds
+
+class TinyImagenetStyle():
+    NUM_CLASSES = 200
+    MEAN = [0.4802, 0.4481, 0.3975]
+    STD = [0.2302, 0.2265, 0.2262]
+    SIZE = 64
+
+    def __init__(self, data_path, alpha):
+        self.data_path = data_path
+        self.alpha = str(alpha)
+        self.transform_test = transforms.Compose([
+            transforms.Resize((TinyImagenetStyle.SIZE, TinyImagenetStyle.SIZE)),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=TinyImagenetStyle.MEAN,std=TinyImagenetStyle.STD),
+            ])
+
+    def get_dataset(self):
+        ds = torchvision.datasets.ImageFolder(root=os.path.join(self.data_path, self.alpha), transform=self.transform_test)
+        return ds
+
+class Imagenet_R():
+    NUM_CLASSES = 1000
+    MEAN = [0.4802, 0.4481, 0.3975]
+    STD = [0.2302, 0.2265, 0.2262]
+    SIZE = 64
+    def __init__(self, data_path, mapping_file):
+        self.data_path = data_path
+        with open(mapping_file, 'r') as f:
+            self.label_mapping = json.load(f)
+        self.transform_test= transforms.Compose([
+                transforms.Resize((Imagenet_R.SIZE,Imagenet_R.SIZE)),
+                # transforms.CenterCrop(56),
+                transforms.ToTensor(),
+                transforms.Normalize(mean=Imagenet_R.MEAN,std=Imagenet_R.STD),
+            ])
+    def get_dataset(self, split=None, transform_train=None, transform_test=None):
+        ds = MappedImageFolder(root=os.path.join(self.data_path), transform=self.transform_test,
+                               label_mapping=self.label_mapping)
+        return ds
+
+class Imagenet_O():
+    NUM_CLASSES = 1000
+    MEAN = [0.4802, 0.4481, 0.3975]
+    STD = [0.2302, 0.2265, 0.2262]
+    SIZE = 64
+    def __init__(self, data_path, mapping_file):
+        self.data_path = data_path
+        with open(mapping_file, 'r') as f:
+            self.label_mapping = json.load(f)
+        self.transform_test= transforms.Compose([
+                transforms.Resize((Imagenet_O.SIZE,Imagenet_O.SIZE)),
+                # transforms.CenterCrop(56),
+                transforms.ToTensor(),
+                transforms.Normalize(mean=Imagenet_O.MEAN,std=Imagenet_O.STD),
+            ])
+    def get_dataset(self, split=None, transform_train=None, transform_test=None):
+        ds = MappedImageFolder(root=os.path.join(self.data_path), transform=self.transform_test,
+                               label_mapping=self.label_mapping)
+        return ds
+
+class Imagenet_A():
+    NUM_CLASSES = 1000
+    MEAN = [0.4802, 0.4481, 0.3975]
+    STD = [0.2302, 0.2265, 0.2262]
+    SIZE = 64
+    def __init__(self, data_path, mapping_file):
+        self.data_path = data_path
+        with open(mapping_file, 'r') as f:
+            self.label_mapping = json.load(f)
+        self.transform_test= transforms.Compose([
+                transforms.Resize(((Imagenet_A.SIZE,Imagenet_A.SIZE))),
+                # transforms.CenterCrop(56),
+                transforms.ToTensor(),
+                transforms.Normalize(mean=Imagenet_A.MEAN,std=Imagenet_A.STD),
+            ])
+    def get_dataset(self, split=None, transform_train=None, transform_test=None):
+        ds = MappedImageFolder(root=os.path.join(self.data_path), transform=self.transform_test,
+                               label_mapping=self.label_mapping)
+        return ds
+
+class Imagenet100():
+    NUM_CLASSES = 100
+    MEAN = [0.48145466, 0.4578275, 0.40821073]
+    STD = [0.26862954, 0.26130258, 0.27577711]
+    SIZE = 224
+
+    def __init__(self, data_path):
+        self.data_path = data_path
+        self.transform_train = transforms.Compose(
+            [transforms.Resize((Imagenet100.SIZE, Imagenet100.SIZE)),
+             transforms.ToTensor(),
+            transforms.Normalize(mean=Imagenet100.MEAN,std=Imagenet100.STD),
+            ])
+        self.transform_test = transforms.Compose([
+                transforms.ToTensor(),
+                transforms.Normalize(mean=Imagenet100.MEAN,std=Imagenet100.STD),
+            ])
+
+    def get_dataset(self, split, transform_train=None, transform_test=None):
+        assert split in ['train', 'test']
+
+        if split == 'train':
+            train_subdirs = [os.path.join(self.data_path, f'train.X{i}') for i in range(1, 5)]
+            train_datasets = [torchvision.datasets.ImageFolder(subdir, transform=transform_train) for subdir in train_subdirs]
+            ds = ConcatDataset(train_datasets)
+        else:
+            ds = torchvision.datasets.ImageFolder(os.path.join(self.data_path, 'val.X'), transform=transform_test)
+
+        # self.CLASS_ID = ds.class_to_idx
+        # with open('/volumes1/datasets/tiny-imagenet-200/tiny-class-id', 'w') as f:
+        #     json.dump(ds.class_to_idx, f)
+
+        return ds
+
 
 DATASETS = {
     'cifar10': CIFAR10,
@@ -219,6 +339,11 @@ DATASETS = {
     'celeba' : CelebA,
     'cifar10_imb': CIFAR10_Imb,
     'cifartint': CIFARTint,
+    'imagenet_r': Imagenet_R,
+    'imagenet_o': Imagenet_O,
+    'imagenet_a': Imagenet_A,
+    'tinystyle':TinyImagenetStyle,
+    'imagenet100':Imagenet100,
     # 'col_mnist': coloredMNIST,
     # 'cor_cifar10': Corrupt_CIFAR10,
     # 'cor_tinyimagenet':Corrupt_TinyImagenet

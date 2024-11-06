@@ -153,6 +153,8 @@ class ResNetMamLLM(MammothBackbone):
             self.embed_dim = 73728
         elif self.num_classes == 200:
             self.embed_dim = 32768
+        # elif self.num_classes == 100:
+        #     self.embed_dim = 32768
         else:
             self.embed_dim = 8192
         self.feature_dim = nf * 8 * block.expansion
@@ -275,7 +277,7 @@ class ResNetMamLLM(MammothBackbone):
         raise NotImplementedError("Unknown return type. Must be in ['out', 'features', 'both', 'full'] but got {}".format(returnt))
 
 
-def resnet18mamllm(nclasses: int, nf: int = 64, llm_block='clip') -> ResNetMamLLM:
+def resnet18mamllm(nclasses: int, nf: int = 64, llm_block='sent_transf') -> ResNetMamLLM:
     """
     Instantiates a ResNet18 network.
 
