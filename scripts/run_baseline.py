@@ -3,11 +3,11 @@ import os
 import itertools
 
 # Define parameters
-lst_buffer_size = [200, 500]  # Example: [100, 200, 500]
+lst_buffer_size = [200] #, 500]  # Example: [100, 200, 500]
 lst_arch = ['resnet18mam'] #'resnet18mam'
 num_runs = 1
-start_seed = 42
-datasets = ["seq-tinyimg"] #"seq-cifar10", "dn4il", ] #"seq-cifar10",
+start_seed = 2
+datasets = ["seq-cifar10"] #"seq-cifar10", "dn4il", ] #"seq-cifar10",
 dataset_dir_lst = {
     "seq-cifar10" : "/volumes1/datasets/cifar",
     "seq-tinyimg" : "/volumes1/datasets/tiny-imagenet-200",
@@ -69,7 +69,7 @@ for buffer_size, dataset, arch, seed in combinations:
         dataset_dir = dataset_dir_lst[dataset]
 
         exp_id = (
-            f"{model}-l{lr}-{arch}-{dataset}-buf-{buffer_size}-s-{seed}"
+            f"model-{model}-l{lr}-{arch}-{dataset}-buf-{buffer_size}-s-{seed}"
         )
         print(f"Running experiment {exp_id}")
 
@@ -88,9 +88,10 @@ for buffer_size, dataset, arch, seed in combinations:
             "--ignore_other_metrics", "1",
             "--wandb_project", "continual_VLM",
             "--wandb_entity", "sngowda42",
-            "--output_dir", "/volumes1/vlm-cl/baseline_final",
+            "--output_dir", "/volumes1/vlm-cl/final",
             "--arch", arch,
             "--seed", str(seed),
+            "--save_model"
         ]
         # Add model-specific arguments
         # Add model-specific arguments

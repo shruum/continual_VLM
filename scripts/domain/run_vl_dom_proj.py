@@ -3,7 +3,7 @@ import os
 import itertools
 
 # Define parameters
-lst_buffer_size = [200] #500]  # Example: [100, 200, 500]
+lst_buffer_size = [500] #500]  # Example: [100, 200, 500]
 lst_arch = ['resnet18mam'] # 'resnet50mam']
 lst_lr = [0.03, 0.1]
 num_runs = 1
@@ -12,7 +12,7 @@ datasets = ["dn4il"] #, "seq-tinyimg"] # "dn4il"] #, "seq-tinyimg"]
 loss_types = ['sim']  # Example: ['kl']
 loss_wt_lst = [10.0, 15.0, 20.0] #, 15.0]
 epochs = [50]
-text_enc_lst = ['sent_transf', 'clip']  # Example: ['bert']
+text_enc_lst = ['sent_transf'] #'clip']  # Example: ['bert']
 gpt_path_lst = {
     "seq-cifar10": 'cl_datasets/metadata/cifar10_descriptions.json',
     "seq-tinyimg": 'cl_datasets/metadata/tinyimagenet_description.json',
@@ -84,7 +84,7 @@ for lr, epochs, text_enc, loss_mode, loss_wt, dataset, arch, seed in combination
                 "--ignore_other_metrics", "1",
                 "--wandb_project", "continual_VLM",
                 "--wandb_entity", "sngowda42",
-                "--output_dir", "results_final",
+                "--output_dir", "/volumes1/vlm-cl/results_final",
                 "--loss_mode", loss_mode,
                 '--gpt_path', gpt_path_lst[dataset],
                 "--arch", arch,

@@ -7,17 +7,18 @@ datasets = ['cifar10_imb'] # 'cifar100'] # 'celeba']
 dataset_dir_lst = { 'cifar10_imb' : '/volumes1/datasets/cifar/CIFAR10',
                    }
 lst_arch = ['resnet18mamllm'] #'resnet18mam'
-num_runs = 1
-start_seed = 42
+num_runs = 2
+start_seed = 0
 log_file = "../error_log.txt"
 model_params = {
-    "cifar10_imb" : {'lr': '0.1', 'epochs':'100', 'wd':'0.0005', 'batch_size':128},
+    "cifar10_imb" : {'lr': '0.1', 'epochs':'100', 'wd':'0.01', 'batch_size':128},
 }
-lr_lst = [0.0001, 0.001, 0.005]
+lr_lst = [0.001]
 wd_lst = [0.01] # 0.0005]
 modes = [ "normal"] #["normal"] #, "vlm"]
 llm_block_lst = ['sent_transf'] #'clip',
 experiment_settings = [
+    {"perc": 0.02, "gamma": -1, "corrupt_prob": 0.0},
     {"perc": 0.05, "gamma": -1, "corrupt_prob": 0.0},
     {"perc": 0.1, "gamma": -1, "corrupt_prob": 0.0},
     {"perc": 0.2, "gamma": -1, "corrupt_prob": 0.0},

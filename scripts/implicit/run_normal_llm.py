@@ -3,9 +3,9 @@ import os
 import itertools
 
 
-datasets = ['cifar100'] # 'tinyimagenet'] # 'celeba']
+datasets = ['cifar10', 'cifar100'] # 'tinyimagenet'] # 'celeba']
 dataset_dir_lst = { 'cifar10' : '/volumes1/datasets/cifar/CIFAR10',
-                   'cifar100': '/volumes1/code-cls/InBiaseD/data',
+                   'cifar100': '/volumes1/datasets/cifar/CIFAR100',
                    'celeba': '/volumes1/datasets',
                    'tinyimagenet': '/volumes1/datasets/tiny-imagenet-200'
                    }
@@ -16,12 +16,12 @@ start_seed = 42
 log_file = "../cls/error_log.txt"
 llm_block_lst = ['sent_transf'] #'clip',
 model_params = {
-    "cifar10" : {'lr': '0.1', 'epochs':'100', 'wd':'0.0005', 'batch_size':128},
-    "cifar100": {'lr': '0.1', 'epochs': '100', 'wd': '0.0005', 'batch_size': 128},
+    "cifar10" : {'lr': '0.1', 'epochs':'120', 'wd':'0.0005', 'batch_size':128},
+    "cifar100": {'lr': '0.1', 'epochs': '120', 'wd': '0.0005', 'batch_size': 128},
     "tinyimagenet": {'lr': '0.03', 'epochs': '100', 'wd': '0.0005', 'batch_size': 128},
 }
-lr_lst = [0.0001, 0.001, 0.005]
-wd_lst = [0.01] # 0.0005]
+lr_lst = [0.003]
+wd_lst = [0.001, 0.0005]
 modes = [ "normal"] #["normal"] #, "vlm"]
 # Create a list of all combinations
 combinations = list(itertools.product(

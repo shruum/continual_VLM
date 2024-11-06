@@ -4,6 +4,7 @@ import torchvision.transforms as transforms
 from torch.utils.data import DataLoader, Dataset
 from backbone.ResNet18 import resnet50, resnet18
 from backbone.ResNet_mam import resnet18mam, resnet50mam
+from backbone.ResNet_mam_llm import *
 import torch.nn.functional as F
 # from utils.conf import base_path_img
 from cl_datasets.utils.continual_dataset import ContinualDataset, store_domain_loaders
@@ -131,6 +132,8 @@ class DN4IL(ContinualDataset):
             return resnet18mam(DN4IL.N_CLASSES_PER_TASK)
         elif self.args.arch == 'resnet50mam':
             return resnet50mam(DN4IL.N_CLASSES_PER_TASK)
+        elif self.args.arch == 'resnet18mamllm':
+            return resnet18mamllm(DN4IL.N_CLASSES_PER_TASK, 64, self.args.llm_block)
         else:
             raise (RuntimeError("architecture type not found"))
 

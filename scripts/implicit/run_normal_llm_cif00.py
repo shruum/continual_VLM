@@ -10,22 +10,23 @@ dataset_dir_lst = { 'cifar100': '/volumes1/datasets/cifar/CIFAR100',
 # Define parameters
 lst_arch = ['resnet18mamllm'] #'resnet18mam'
 num_runs = 1
-start_seed = 42
+start_seed = 0
 log_file = "../cls/error_log.txt"
-llm_block_lst = ['clip'] #,'sent_transf'] #'clip',
+llm_block = 'sent_transf' #'clip',
 
 model_params = {
     "cifar100": {'lr': '0.1', 'epochs': '100', 'wd': '0.0005', 'batch_size': 128},
 }
-lr_lst = [0.001, 0.005]
+lr_lst = [0.003, 0.005]
 epoch_lst = [100]
-# wd_lst = [0.1, 0.001, 0.0001]
-
+wd_lst = [0.1, 0.0]
 modes = [ "normal"]
+llm_block = 'sent_transf'
 # Create a list of all combinations
 combinations = list(itertools.product(
     modes,
     lr_lst,
+    wd_lst,
     epoch_lst,
     datasets,
     lst_arch,
@@ -39,15 +40,15 @@ def handle_error(exp_id, error_message):
         f.write(f"Experiment ID: {exp_id}\nError Message: {error_message}\n\n")
 
 # Iterate over combinations
-for mode, lr, epochs, dataset, arch, seed in combinations:
+for mode, lr, wd, epochs, dataset, arch, seed in combinations:
     # Set model parameters
     # lr = model_params[dataset]['lr']
     # epochs = model_params[dataset]['epochs']
     batch_size = model_params[dataset]['batch_size']
-    wd = model_params[dataset]['wd']
+    # wd = model_params[dataset]['wd']
     dataset_dir = dataset_dir_lst[dataset]
 
-    exp_id = f"redo-{mode}-{arch}-{dataset}-desc--l{lr}-e-{epochs}-s-{seed}"
+    exp_id = f"ix-{mode}-{arch}-{dataset}-desc--l{lr}-w{wd}-e-{epochs}-s-{seed}"
     print(f"Running experiment {exp_id}")
     # Construct the command
     cmd = [
@@ -64,13 +65,14 @@ for mode, lr, epochs, dataset, arch, seed in combinations:
         "--ignore_other_metrics", "1",
         "--wandb_project", "continual_VLM",
         "--wandb_entity", "sngowda42",
-        "--output_dir", "/volumes1/vlm-cl/dytox_cls",
+        "--output_dir", "/volumes1/vlm-cl/dytox_cls/implicit",
         "--arch", arch,
         "--scheduler", "cosine",
         "--seed", str(seed),
-        "--optim_wd", wd,
+        "--optim_wd", str(wd),
         "--mode", mode,
-        "--scheduler", "cosine",
+        "--llm_block", llm_block,
+        "--llama",
     ]
 
     try:
