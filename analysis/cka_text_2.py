@@ -9,7 +9,8 @@ import numpy as np
 from sentence_transformers import SentenceTransformer
 
 lst_colors = [
-    "#ffffff",
+    # "#ffffff",
+    "#bfdbf7",
     "#e1e5f2",
     '#bfdbf7',
     "#4ea8de",
@@ -22,109 +23,43 @@ custom1 = LinearSegmentedColormap.from_list(
     colors=lst_colors,
 )
 
-def hsic1(gram_x: torch.Tensor, gram_y: torch.Tensor) -> torch.Tensor:
-    """Compute the batched version of the Hilbert-Schmidt Independence Criterion on Gram matrices.
-    This version is based on
-    https://github.com/numpee/CKA.pytorch/blob/07874ec7e219ad29a29ee8d5ebdada0e1156cf9f/cka.py#L107.
-    Args:
-        gram_x: batch of Gram matrices of shape (bsz, n, n).
-        gram_y: batch of Gram matrices of shape (bsz, n, n).
-    Returns:
-        a tensor with the unbiased Hilbert-Schmidt Independence Criterion values.
-    Raises:
-        ValueError: if ``gram_x`` and ``gram_y`` do not have the same shape or if they do not have exactly three
-        dimensions.
-    """
-    if len(gram_x.size()) != 3 or gram_x.size() != gram_y.size():
-        raise ValueError("Invalid size for one of the two input tensors.")
-    n = gram_x.shape[-1]
-    gram_x = gram_x.clone()
-    gram_y = gram_y.clone()
-    # Fill the diagonal of each matrix with 0
-    gram_x.diagonal(dim1=-1, dim2=-2).fill_(0)
-    gram_y.diagonal(dim1=-1, dim2=-2).fill_(0)
-    # Compute the product between k (i.e.: gram_x) and l (i.e.: gram_y)
-    kl = torch.bmm(gram_x, gram_y)
-    # Compute the trace (sum of the elements on the diagonal) of the previous product, i.e.: the left term
-    trace_kl = kl.diagonal(dim1=-1, dim2=-2).sum(-1).unsqueeze(-1).unsqueeze(-1)
-    # Compute the middle term
-    middle_term = gram_x.sum((-1, -2), keepdim=True) * gram_y.sum((-1, -2), keepdim=True)
-    middle_term /= (n - 1) * (n - 2)
-    # Compute the right term
-    right_term = kl.sum((-1, -2), keepdim=True)
-    right_term *= 2 / (n - 2)
-    # Put all together to compute the main term
-    main_term = trace_kl + middle_term - right_term
-    # Compute the hsic values
-    out = main_term / (n**2 - 3 * n)
-    return out.squeeze(-1).squeeze(-1)
-def gram_linear(x):
-  """Compute Gram (kernel) matrix for a linear kernel.
-  Args:
-    x: A num_examples x num_features matrix of features.
 
-  Returns:
-    A num_examples x num_examples Gram matrix of examples.
-  """
-  return x.dot(x.T)
-def center_gram(gram, unbiased=False):
-  """Center a symmetric Gram matrix.
-  This is equvialent to centering the (possibly infinite-dimensional) features
-  induced by the kernel before computing the Gram matrix.
-  Args:
-    gram: A num_examples x num_examples symmetric matrix.
-    unbiased: Whether to adjust the Gram matrix in order to compute an unbiased
-      estimate of HSIC. Note that this estimator may be negative.
+class LinearCKA:
+    def __init__(self, device='cuda'):
+        self.device = device
 
-  Returns:
-    A symmetric matrix with centered columns and rows.
-  """
-  if not np.allclose(gram, gram.T):
-    raise ValueError('Input must be a symmetric matrix.')
-  gram = gram.copy()
+    def linear_HSIC(self, X, Y, sigma=None):
+        L_X = torch.matmul(X, X.T)
+        L_Y = torch.matmul(Y, Y.T)
+        return torch.sum(self.centering(L_X) * self.centering(L_Y))
 
-  if unbiased:
-    # This formulation of the U-statistic, from Szekely, G. J., & Rizzo, M.
-    # L. (2014). Partial distance correlation with methods for dissimilarities.
-    # The Annals of Statistics, 42(6), 2382-2412, seems to be more numerically
-    # stable than the alternative from Song et al. (2007).
-    n = gram.shape[0]
-    np.fill_diagonal(gram, 0)
-    means = np.sum(gram, 0, dtype=np.float64) / (n - 2)
-    means -= np.sum(means) / (2 * (n - 1))
-    gram -= means[:, None]
-    gram -= means[None, :]
-    np.fill_diagonal(gram, 0)
-  else:
-    means = np.mean(gram, 0, dtype=np.float64)
-    means -= np.mean(means) / 2
-    gram -= means[:, None]
-    gram -= means[None, :]
-  return gram
-def cka(x, y, debiased=False):
-  """Compute CKA.
-  Args:
-    gram_x: A num_examples x num_examples Gram matrix.
-    gram_y: A num_examples x num_examples Gram matrix.
-    debiased: Use unbiased estimator of HSIC. CKA may still be biased.
-  Returns:
-    The value of CKA between X and Y.
-  """
-  x = x.type(torch.float64) if not x.dtype == torch.float64 else x
-  y = y.type(torch.float64) if not y.dtype == torch.float64 else y
-  # Build the Gram matrices by applying the linear kernel
-  gram_x = torch.bmm(x, x.transpose(1, 2))
-  gram_y = torch.bmm(y, y.transpose(1, 2))
+    def centering(self, K):
+        n = K.shape[0]
+        self.H = self.get_centering_matrix(n)
+        return torch.matmul(torch.matmul(self.H, K), self.H)
 
-  # Compute the HSIC values for the entire batches
-  hsic1_xy = hsic1(gram_x, gram_y)
-  hsic1_xx = hsic1(gram_x, gram_x)
-  hsic1_yy = hsic1(gram_y, gram_y)
-  # Compute the CKA value
-  cka = hsic1_xy.sum() / (hsic1_xx.sum() * hsic1_yy.sum()).sqrt()
-  return cka
+    def get_centering_matrix(self, n):
+        unit = torch.ones(n, n).to(self.device)
+        I = torch.eye(n).to(self.device)
+        H = I - unit / n
+        return H
 
-text = "An airplane is a sleek, metallic body with swept-back wings, a pointed nose, and engines attached to the wings and tail section."
+    def calculate(self, X, Y, sigma=None):
+        hsic = self.linear_HSIC(X, Y, sigma)
+        # print(hsic)
+        # asd
+        var1 = torch.sqrt(self.linear_HSIC(X, X, sigma))
+        var2 = torch.sqrt(self.linear_HSIC(Y, Y, sigma))
+
+        return hsic / (var1 * var2)
+
+
+# text = ("An airplane is a vehicle with 2 wings on the side and motors."
+#         " It can be real photo or a drawn sketch and it can be colorful or grey. It can be painted") # is a sleek, metallic body with swept-back wings, a pointed nose, and engines attached to the wings and tail section."
+# text = "Rough sketch of an object which is black and white"
+# text = "Blue skies with white clouds"
+
+
 def get_penultimate_embedding(model, text):
     tokenized_text = model.tokenize([text])
     tokenized_text['attention_mask'] = tokenized_text['attention_mask'].to('cuda')
@@ -152,11 +87,16 @@ def load_and_process_image(image_path):
     image = Image.open(image_path).convert('RGB')  # Convert image to RGB
     return transform(image).unsqueeze(0)  # Add batch dimension
 # Image file paths (modify this path as needed)
-image_folder = "/volumes1/datasets/DN4IL/tmp"
+# text = "An airplane is a vehicle with 2 wings on the side and motors and it can be painting with blue and green color or a black sketch"
+text = "An ice cream is a frozen, creamy, and colorful treat atop a cone or in a cup, and may have various toppings"
+image_folder = "/volumes1/datasets/DN4IL/tmp/ice"
 image_files = []
-domains = ['clipart', 'infograph', 'painting', 'quickdraw', 'real', 'sketch']
+domains = ['real', 'clipart', 'infograph', 'painting', 'sketch', 'quickdraw']
+
+all_files = os.listdir(image_folder)
 for dom in domains:
-    image_files.append(os.path.join(image_folder, '{}_002_000002.jpg'.format(dom)))
+    domain_files = [os.path.join(image_folder, f) for f in all_files if f.startswith(dom) and f.endswith('.jpg')]
+    image_files.extend(domain_files)
 images = [load_and_process_image(path) for path in image_files]
 
 # Extract features and flatten them
@@ -165,45 +105,40 @@ for image in images:
     with torch.no_grad():
         feature = resnet18_features(image).cuda()  # Extract intermediate features
         feature = feature.view(feature.size(0), feature.size(1), -1) #feature.view(feature.size(0), -1)  # Flatten (batch_size, channels * height * width)
-        feature = feature.mean(dim=2, keepdim=True)
-        image_features_padded = torch.nn.functional.pad(feature, (0, 0, 0, 128))  # Padding along the second dimension
+        feature = feature.mean(dim=2)
+        image_features_padded = torch.nn.functional.pad(feature, (0,128)).permute(1,0) # Padding along the second dimension
         features.append(image_features_padded)  # Store the features
 
 # Sentence to extract embeddings
 sentence_model = SentenceTransformer('all-MiniLM-L6-v2')  # You can choose other models as well
 text_embedding = get_penultimate_embedding(sentence_model, text)
-text_embedding_penultimate = text_embedding.mean(dim=1, keepdim=True)
-text_embedding_penultimate = text_embedding_penultimate.permute(0,2,1)
+text_embedding_penultimate = text_embedding.mean(dim=1)
+text_embedding_penultimate = text_embedding_penultimate.permute(1, 0)
+# min_val = text_embedding_penultimate.min()  # Get the minimum value in the tensor
+# max_val = text_embedding_penultimate.max()  # Get the maximum value in the tensor
+# # Apply min-max normalization
+# epsilon = 1e-7
+# text_embedding_penultimate = (text_embedding_penultimate - min_val) / (max_val - min_val + epsilon)
+# text_embedding_penultimate = text_embedding_penultimate
 
 
-text_embedding1 = get_penultimate_embedding(sentence_model, text1)
-text_embedding_penultimate1 = text_embedding1.mean(dim=1, keepdim=True)
-text_embedding_penultimate1 = text_embedding_penultimate1.permute(0,2,1)
+cka = LinearCKA()
+similarity_matrix = torch.zeros(1, 6)
+for i in range(6):
+    similarity_matrix[0, i] = cka.calculate(features[i], text_embedding_penultimate)
 
-
-text_embedding2 = get_penultimate_embedding(sentence_model, text2)
-text_embedding_penultimate2 = text_embedding2.mean(dim=1, keepdim=True)
-text_embedding_penultimate2 = text_embedding_penultimate2.permute(0,2,1)
-
-
-min_val = text_embedding_penultimate.min()  # Get the minimum value in the tensor
-max_val = text_embedding_penultimate.max()  # Get the maximum value in the tensor
-
-# Apply min-max normalization
-epsilon = 1e-7
-text_embedding_penultimate = (text_embedding_penultimate - min_val) / (max_val - min_val + epsilon)
-text_embedding_penultimate = text_embedding_penultimate
-
-similarity_matrix = torch.zeros(1, 5)
-for i in range(5):
-    similarity_matrix[0, i] = cka(features[i], text_embedding_penultimate)
+print(similarity_matrix)
+min_val = similarity_matrix.min()
+max_val = similarity_matrix.max()
+normalized_similarity_matrix = (similarity_matrix - min_val) / (max_val - min_val)
 
 # Plot the 1x5 CKA similarity matrix
-fig, ax = plt.subplots()
-plt.imshow(similarity_matrix, cmap=custom1, interpolation='nearest', aspect='auto')
-plt.colorbar()
-plt.title("CKA Similarity Matrix: Text vs Images")
-plt.xticks(range(5), domains, rotation=45)
+fig, ax = plt.subplots(figsize=(6,1))
+plt.imshow(normalized_similarity_matrix, cmap=custom1, interpolation='nearest', aspect='auto')
+# plt.colorbar()
+plt.title("CKA Similarity between Images and Text")
+domain_label = ['Real', 'Clipart', 'Infograph', 'Painting', 'Sketch', 'Quickdraw']
+plt.xticks(range(6), domain_label, rotation=20)
 plt.yticks([])  # No y-axis labels needed since it's only one row
-plt.savefig("/volumes1/vlm-cl/paper/cka_text.png")
+plt.savefig("/volumes1/vlm-cl/paper/cka_text_ice.png", bbox_inches='tight')
 plt.show()

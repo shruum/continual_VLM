@@ -6,7 +6,15 @@ import torch
 from torch.optim import SGD, Adam, AdamW
 from torch.utils.tensorboard import SummaryWriter
 import torch.nn.functional as F
+import glob
 
+def get_latest_checkpoint(output_dir, experiment_id):
+    # List all checkpoint files matching the pattern checkpoint_[epoch].pth
+    checkpoint_files = glob.glob(os.path.join(output_dir, experiment_id, 'checkpoint_*.pth'))
+    if not checkpoint_files:
+        return None
+    checkpoint_files.sort(key=lambda x: int(x.split('_')[-1].split('.')[0]))
+    return checkpoint_files[-1]  # Return the latest checkpoint by epoch
 
 def save_results_normal(args, file, test_loss, test_accuracy, seed=0, mu=0, sigma = 0):
 
@@ -93,7 +101,6 @@ def train_normal(args, dataset, model):
     else:
         optimizer = SGD(model.backbone.parameters(), lr=args.lr, momentum=0.9, weight_decay=args.optim_wd)
 
-
     scheduler = None
     if args.scheduler == 'multistep':
         scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=args.epoch_step, gamma=0.1)
@@ -101,7 +108,16 @@ def train_normal(args, dataset, model):
         scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.n_epochs)
 
     print('*' * 60 + '\nTraining Mode: %s\n' % args.mode + '*' * 60)
-    for epoch in tqdm(range(1, args.n_epochs + 1), desc='training epochs'):
+    start_epoch = 1
+    checkpoint_path = get_latest_checkpoint(args.output_dir, args.experiment_id)
+    if checkpoint_path:
+        checkpoint = torch.load(checkpoint_path)
+        model.backbone.load_state_dict(checkpoint['state_dict'])
+        optimizer.load_state_dict(checkpoint['optimizer'])
+        start_epoch = checkpoint['epoch'] + 1
+        print(f"Resuming training from epoch {start_epoch}")
+
+    for epoch in tqdm(range(start_epoch, args.n_epochs + 1), desc='training epochs'):
         # adjust learning rate for SGD
         if scheduler:
             scheduler.step()
@@ -109,6 +125,18 @@ def train_normal(args, dataset, model):
             adjust_learning_rate(epoch, args.epoch_step, args.lr_decay_ratio, optimizer)
 
         model.train_normal(train_loader, optimizer, epoch)
+
+        if dataset.__class__.__name__ == 'Imagenet100' and epoch % 10 == 0:
+            checkpoint_data = {
+                'state_dict': model.backbone.state_dict(),
+                'optimizer': optimizer.state_dict(),
+                'epoch': epoch
+            }
+            epoch_checkpoint_path = os.path.join(args.output_dir, args.experiment_id, f'checkpoint_{epoch}.pth')
+            os.makedirs(os.path.join(args.output_dir, args.experiment_id), exist_ok=True)
+            torch.save(checkpoint_data, epoch_checkpoint_path)
+            print(f"Checkpoint saved at epoch {epoch}")
+
     # get final test accuracy
     test_loss, test_accuracy, correct = eval(model.backbone, model.device, test_loader)
     save_results_normal(args, os.path.join(args.output_dir, args.experiment_id, 'results.csv'),
