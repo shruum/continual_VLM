@@ -1,6 +1,6 @@
 from torchvision.datasets import CIFAR100
 import torchvision.transforms as transforms
-from backbone.ResNet18 import resnet18
+from backbone.ResNet import resnet18
 import torch
 import torch.nn.functional as F
 from PIL import Image

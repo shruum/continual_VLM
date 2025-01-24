@@ -3,14 +3,14 @@ import os
 import itertools
 
 
-datasets = ['celeba'] # 'cifar100'] # 'celeba']
+datasets = ['cifar10'] # 'cifar100'] # 'celeba']
 dataset_dir_lst = { 'cifar10' : '/volumes1/datasets/cifar/CIFAR10',
                    'cifar100': '/volumes1/datasets/cifar/CIFAR100',
                    'celeba': '/volumes1/datasets/celeba'
                    }
 # Define parameters
-lst_arch = ['resnet18mam'] #'resnet18mam'
-num_runs = 2
+lst_arch = ['resnet50mam'] #'resnet18mam'
+num_runs = 1
 start_seed = 0
 log_file = "error_log.txt"
 
@@ -72,7 +72,7 @@ for mode, dataset, arch, seed in combinations:
         "--ignore_other_metrics", "1",
         "--wandb_project", "continual_VLM",
         "--wandb_entity", "sngowda42",
-        "--output_dir", "/volumes1/vlm-cl/seeds/cls",
+        "--output_dir", "/volumes1/vlm-cl/normal_cls/r50",
         "--arch", arch,
         "--scheduler", "cosine",
         "--seed", str(seed),

@@ -4,15 +4,18 @@
 # LICENSE file in the root directory of this source tree.
 
 from typing import Tuple
-
+import clip
 import torch.nn.functional as F
 import torchvision.transforms as transforms
-from backbone.ResNet import resnet18
+from backbone.ResNet import *
+from backbone.ResNet_mam import *
+from backbone.vit import vittiny
+from backbone.vit_llm import vittinyllm
+# from backbone.ResNet_mam_llm import *
 from PIL import Image
 from torchvision.datasets import CIFAR10
 
 import os
-# from cl_datasets.seq_tinyimagenet import base_path
 from cl_datasets.transforms.denormalization import DeNormalize
 from cl_datasets.utils.continual_dataset import (ContinualDataset,
                                               store_masked_loaders)
@@ -25,7 +28,7 @@ class TCIFAR10(CIFAR10):
         self.root = root
         super(TCIFAR10, self).__init__(root, train, transform, target_transform, download=not self._check_integrity())
 
-class MyCIFAR10T(CIFAR10):
+class MyCIFAR10(CIFAR10):
     """
     Overrides the CIFAR10 dataset to change the getitem function.
     """
@@ -33,7 +36,7 @@ class MyCIFAR10T(CIFAR10):
                  target_transform=None, download=False) -> None:
         self.not_aug_transform = transforms.Compose([transforms.ToTensor()])
         self.root = root
-        super(MyCIFAR10T, self).__init__(root, train, transform, target_transform, download=not self._check_integrity())
+        super(MyCIFAR10, self).__init__(root, train, transform, target_transform, download=not self._check_integrity())
 
     def __getitem__(self, index: int) -> Tuple[Image.Image, int, Image.Image]:
         """
@@ -61,15 +64,22 @@ class MyCIFAR10T(CIFAR10):
         return img, target, not_aug_img
 
 
-class SequentialCIFAR10(ContinualDataset):
+class SequentialCIFAR10Vit(ContinualDataset):
 
-    NAME = 'seq-cifar10_transf'
+    NAME = 'seq-cifar10-vit'
     SETTING = 'class-il'
     N_CLASSES_PER_TASK = 2
     N_TASKS = 5
     CLASS_ID = {0: "car (automobile)", 1: "airplane", 2: "bird", 3: "cat", 4: "deer", 5: "dog",
                 6: "frog", 7: "horse", 8: "cargo ship", 9: "truck"}
 
+    #for CLIP model
+    # TRANSFORM = transforms.Compose(
+    #         [transforms.Resize((224, 224)),
+    #          transforms.RandomHorizontalFlip(),
+    #          transforms.ToTensor(),
+    #          transforms.Normalize((0.4914, 0.4822, 0.4465),
+    #                               (0.2470, 0.2435, 0.2615))])
     TRANSFORM = transforms.Compose(
             [transforms.RandomCrop(32, padding=4),
              transforms.RandomHorizontalFlip(),
@@ -98,13 +108,27 @@ class SequentialCIFAR10(ContinualDataset):
     @staticmethod
     def get_transform():
         transform = transforms.Compose(
-            [transforms.ToPILImage(), SequentialCIFAR10.TRANSFORM])
+            [transforms.ToPILImage(), SequentialCIFAR10Vit.TRANSFORM])
         return transform
 
-    @staticmethod
-    def get_backbone(patch_size=None, patch_embed_type=None, depth=None):
-        return vittiny(nclasses=SequentialCIFAR10.N_CLASSES_PER_TASK*SequentialCIFAR10.N_TASKS, p_size=patch_size,
-                       embed_type=patch_embed_type, depth=depth)
+    def get_backbone(self):
+        if self.args.arch == 'clip_vit':
+            from transformers import CLIPModel, CLIPProcessor
+            # model, _ = clip.load("ViT-B/32", device=torch.device("cuda" if torch.cuda.is_available() else "cpu"))
+            model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32")
+            return model.vision_model
+        elif self.args.arch == 'clip_res':
+            # Load the CLIP model and extract the vision encoder
+            model, _ = clip.load("RN50", device=torch.device("cuda" if torch.cuda.is_available() else "cpu"))
+            return model.visual  # Return the vision encoder part of CLIP
+        elif self.args.arch == 'vittiny':
+            model = vittiny(SequentialCIFAR10Vit.N_CLASSES_PER_TASK * SequentialCIFAR10Vit.N_TASKS)
+            return model
+        elif self.args.arch == "vittinyllm":
+            model = vittinyllm(SequentialCIFAR10Vit.N_CLASSES_PER_TASK * SequentialCIFAR10Vit.N_TASKS, self.args.llm_block)
+            return model
+        else:
+            raise (RuntimeError("architecture type not found"))
 
     @staticmethod
     def get_loss():

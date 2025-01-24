@@ -48,7 +48,14 @@ class VLER(ContinualModel):
         loss_dict = {}
         self.opt.zero_grad()
 
-        outputs, features = self.net(inputs, returnt='all')
+        if self.args.arch == 'clip_vit':
+            out = self.net(inputs)
+            outputs, features = out.pooler_output, out.last_hidden_state.mean(dim=1)
+        elif self.args.arch == 'vittiny' or self.args.arch == 'vittinyllm':
+            outputs, features = self.net(inputs)
+        else:
+            outputs, features = self.net(inputs, returnt='all')
+
         if self.args.loss_loc == 'before':
             loss_aux = self.kd_loss.loss_vlm(labels, dataset, features)
 
@@ -63,9 +70,15 @@ class VLER(ContinualModel):
             inputs = torch.cat((inputs, buf_inputs))
             labels = torch.cat((labels, buf_labels))
 
-        outputs, features = self.net(inputs, returnt='all')
-        loss_ce1 = self.loss(outputs, labels)
+        if self.args.arch == 'clip_vit':
+            out = self.net(inputs)
+            outputs, features = out.pooler_output, out.last_hidden_state.mean(dim=1)
+        elif self.args.arch == 'vittiny' or self.args.arch == 'vittinyllm':
+            outputs, features = self.net(inputs)
+        else:
+            outputs, features = self.net(inputs, returnt='all')
 
+        loss_ce1 = self.loss(outputs, labels)
         if self.args.loss_loc == 'after':
             loss_aux = self.kd_loss.loss_vlm(labels, dataset, features)
 

@@ -21,7 +21,7 @@ import numpy as np
 # try:
 #     import wandb
 #     wandb.login(key='fa9d5ad248f922603618680d1197fcb953d7d32e')
-# except ImportError:
+# except ImportError or AttributeError:
 #     wandb = None
 
 def mask_classes(outputs: torch.Tensor, dataset: ContinualDataset, k: int) -> None:
@@ -61,6 +61,9 @@ def evaluate(model: ContinualModel, dataset: ContinualDataset, last=False) -> Tu
                     outputs = model(inputs, k)
                 else:
                     outputs = model(inputs)
+
+                if isinstance(outputs, tuple):
+                    outputs = outputs[0]
 
                 _, pred = torch.max(outputs.data, 1)
                 correct += torch.sum(pred == labels).item()

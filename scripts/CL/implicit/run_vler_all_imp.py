@@ -7,7 +7,7 @@ lst_buffer_size = [200, 500]  # Example: [100, 200, 500]
 lst_arch = ['resnet18mamllm']
 num_runs = 1
 start_seed = 42
-datasets = ["seq-cifar10", "seq-cifar100", "seq-tinyimg"]
+datasets = ["seq-cifar100"] #, "seq-cifar100", "seq-tinyimg"]
 gpt_path_lst = {
     "seq-cifar10": 'cl_datasets/metadata/cifar10_descriptions.json',
     "seq-cifar100": 'cl_datasets/metadata/cifar100_descriptions.json',
@@ -22,17 +22,21 @@ dataset_dir_lst = {
 log_file = "error_log_method.txt"
 model_params = {
     'seq-cifar10': {'lr': '0.1', 'epochs':'100', 'wd': 0.01, 'batch_size': 128, 'minibatch_size': 32},
+    'seq-cifar100': {'lr': '0.1', 'epochs': '100', 'wd': 0.01, 'batch_size': 128, 'minibatch_size': 32},
+
 }
-lr_lst = [0.0001, 0.001, 0.005]
-wd_lst = [0.01] # 0.0005]
+lr_lst = [0.001, 0.005]
+wd_lst = [0.01, 0.0005]
 modes = [ "normal"] #["normal"] #, "vlm"]
 llm_block = 'sent_transf' #'clip']
 model ='er'
+n_tasks_cif=10
 # Create a list of all combinations
 combinations = list(itertools.product(
     modes,
     lr_lst,
-    dataset_dir_lst,
+    wd_lst,
+    datasets,
     lst_arch,
     range(start_seed, start_seed + num_runs)
 ))
@@ -44,15 +48,15 @@ def handle_error(exp_id):
         f.write(f"{exp_id}\n")
 
 # Iterate over combinations
-for mode, lr, dataset, arch, seed in combinations:
+for mode, lr, wd, dataset, arch, seed in combinations:
     for buffer_size in lst_buffer_size if model != 'vl_si' else [None]:
 
         epochs = model_params[dataset]['epochs']
-        wd = model_params[dataset]['wd']
+        # wd = model_params[dataset]['wd']
         minibatch_size = model_params[dataset]['minibatch_size']
         dataset_dir = dataset_dir_lst[dataset]
         exp_id = (
-            f"lgix-{model}-{arch}-{llm_block}-{dataset}-b-{buffer_size}--l{lr}-e-{epochs}-l{lr}--s-{seed}"
+            f"lgix-{model}-{arch}-{dataset}{n_tasks_cif}-b-{buffer_size}--l{lr}-w{wd}-e-{epochs}-s-{seed}"
         )
         print(f"Running experiment {exp_id}")
 
@@ -71,7 +75,7 @@ for mode, lr, dataset, arch, seed in combinations:
             "--ignore_other_metrics", "1",
             "--wandb_project", "continual_VLM",
             "--wandb_entity", "sngowda42",
-            "--output_dir", "/volumes1/vlm-cl/final",
+            "--output_dir", "/volumes1/vlm-cl/dytox_cls/cl",
             "--arch", arch,
             "--scheduler", "cosine",
             "--seed", str(seed),
@@ -81,6 +85,7 @@ for mode, lr, dataset, arch, seed in combinations:
             "--minibatch_size", str(minibatch_size),
             "--llm_block", llm_block,
             "--llama",
+            "--n_tasks_cif", str(n_tasks_cif)
         ]
 
 

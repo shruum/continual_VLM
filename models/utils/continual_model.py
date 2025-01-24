@@ -60,15 +60,15 @@ class ContinualModel(nn.Module):
         self.loss = loss
         self.args = args
         self.transform = transform
-        if self.args.arch == 'resnet18mamllm':
-            self.opt = AdamW(self.net.parameters(), lr=self.args.lr, betas=(0.9, 0.98), eps=1e-6, weight_decay=args.optim_wd)
+        if self.args.arch == 'resnet18mamllm' or "vit" in self.args.arch:
+            self.opt = AdamW(self.net.parameters(), lr=self.args.lr, weight_decay=args.optim_wd) #betas=(0.9, 0.98), eps=1e-6,
         else:
             self.opt = SGD(self.net.parameters(), lr=self.args.lr)
         self.device = torch.device(args.device)
         self.task = 0
         if "vl" in self.NAME:
             self.text_model = args.text_model
-            self.text_encoder = TextEncoder(self.text_model, device=self.device, pretrain=True)
+            self.text_encoder = TextEncoder(self.text_model, device=self.device, pretrain=self.args.llm_pretrain)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """

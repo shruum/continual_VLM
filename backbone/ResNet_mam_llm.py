@@ -122,7 +122,7 @@ class ResNetMamLLM(MammothBackbone):
     """
 
     def __init__(self, block: BasicBlock, num_blocks: List[int],
-                 num_classes: int, nf: int, llm_block: str,
+                 num_classes: int, nf: int, llm_block: str, llm_pretrain='True',
                  llama_config={"dim": 4096, "multiple_of": 1024,
                                "n_heads": 32, "n_layers": 32, "norm_eps": 1.0e-5,
                                "vocab_size": -1, "first_layer": 31, "n_kv_heads": 8,
@@ -149,12 +149,18 @@ class ResNetMamLLM(MammothBackbone):
         self.layer3 = self._make_layer(block, nf * 4, num_blocks[2], stride=2)
         self.layer4 = self._make_layer(block, nf * 8, num_blocks[3], stride=2)
 
-        if self.num_classes == 2:
+        if self.num_classes == 2: #celeb
             self.embed_dim = 73728
-        elif self.num_classes == 200:
+        elif self.num_classes == 10: #celeb
+            self.embed_dim = 8192
+        elif self.num_classes == 200: #tiny
             self.embed_dim = 32768
-        # elif self.num_classes == 100:
+        # elif self.num_classes == 100: #cif100
         #     self.embed_dim = 32768
+        # elif self.num_classes == 100: #imagenet
+        #     self.embed_dim = 401408
+        elif self.num_classes == 100: #dn4il
+            self.embed_dim = 32768 #401408 #32768
         else:
             self.embed_dim = 8192
         self.feature_dim = nf * 8 * block.expansion
@@ -170,9 +176,39 @@ class ResNetMamLLM(MammothBackbone):
             print("Loading CLIP LLM model")
         elif self.llm_block == 'sent_transf':
             from sentence_transformers import SentenceTransformer
-            self.llm = SentenceTransformer('all-MiniLM-L6-v2')
+            if llm_pretrain == "False":
+                self.llm = SentenceTransformer('all-MiniLM-L6-v2')
+                print("Reinitializing Sent Transformer LLM model weights")
+                for name, param in self.llm.named_parameters():
+                    if param.requires_grad:
+                        if param.dim() >= 2:  # Check if tensor has 2 or more dimensions
+                            nn.init.xavier_uniform_(param)  # Use Xavier initialization for weights
+                        else:
+                            nn.init.zeros_(param)  # Set biases to zero
+                        # if param.dim() >= 2:  # For multi-dimensional tensors (e.g., weight matrices)
+                        #     with torch.no_grad():
+                        #         param.copy_(param.view(-1)[torch.randperm(param.numel())].view(param.size()))
+                        # elif param.dim() == 1:  # For one-dimensional tensors (e.g., biases)
+                        #     with torch.no_grad():
+                        #         param.copy_(param[torch.randperm(param.size(0))])
+            else:
+                self.llm = SentenceTransformer('all-MiniLM-L6-v2')
+                print("Loading Pretrained Sent Transformer LLM model")
             llm_hidden_size = self.llm.get_sentence_embedding_dimension()
+            self.transformer_model = self.llm[0].auto_model
             print("Loading Sent Transformer LLM model")
+        elif self.llm_block == 'sent_transf_large':
+            from sentence_transformers import SentenceTransformer
+            self.llm = SentenceTransformer('all-distilroberta-v1') #('all-roberta-large-v1')
+            llm_hidden_size = self.llm.get_sentence_embedding_dimension()
+            self.transformer_model = self.llm[0].auto_model
+            print("Loading Sent Transformer LARGE LLM model")
+        elif self.llm_block == 'code_lm':
+            from transformers import AutoModel, AutoTokenizer
+            self.llm_tokenizer = AutoTokenizer.from_pretrained("microsoft/codebert-base")
+            self.llm = AutoModel.from_pretrained("microsoft/codebert-base")
+            llm_hidden_size = self.llm.config.hidden_size
+            print("Loading CodeBERT model (microsoft/codebert-base)")
 
         for param in self.llm.parameters():
             param.requires_grad = False
@@ -241,14 +277,20 @@ class ResNetMamLLM(MammothBackbone):
         out_4_proj = self.llm_dim_mapper1(out_4_flat)  # Flatten
         if self.llm_block == 'clip':
             llm_output = self.llm.text_model.encoder(inputs_embeds=out_4_proj.unsqueeze(1)).last_hidden_state
-        elif self.llm_block == 'sent_transf':
-            transformer_model = self.llm[0].auto_model  # Get the Hugging Face transformer model
-            transformer_output = transformer_model(
+        elif self.llm_block == 'sent_transf' or self.llm_block == 'sent_transf_large':
+            # transformer_model = self.llm[0].auto_model  # Get the Hugging Face transformer model
+            transformer_output = self.transformer_model(
                 inputs_embeds=out_4_proj.unsqueeze(1),  # Add the sequence dimension
                 output_hidden_states=False,  # Don't need all hidden states, just the last output
                 return_dict=True  # Use Hugging Face's return dict
             )
             llm_output = transformer_output.last_hidden_state
+        elif self.llm_block == 'code_lm':
+            llm_output = self.llm(
+                inputs_embeds=out_4_proj.unsqueeze(1),  # Add sequence dimension
+                output_hidden_states=False,  # Use only the final layer
+                return_dict=True  # Return as a dictionary
+            ).last_hidden_state
 
         feature_l = self.llm_dim_mapper2(llm_output.squeeze(1))
 
@@ -277,7 +319,7 @@ class ResNetMamLLM(MammothBackbone):
         raise NotImplementedError("Unknown return type. Must be in ['out', 'features', 'both', 'full'] but got {}".format(returnt))
 
 
-def resnet18mamllm(nclasses: int, nf: int = 64, llm_block='sent_transf') -> ResNetMamLLM:
+def resnet18mamllm(nclasses: int, nf: int = 64, llm_block='sent_transf', llm_pretrain='True') -> ResNetMamLLM:
     """
     Instantiates a ResNet18 network.
 
@@ -288,7 +330,7 @@ def resnet18mamllm(nclasses: int, nf: int = 64, llm_block='sent_transf') -> ResN
     Returns:
         ResNet network
     """
-    return ResNetMamLLM(BasicBlock, [2, 2, 2, 2], nclasses, nf, llm_block)
+    return ResNetMamLLM(BasicBlock, [2, 2, 2, 2], nclasses, nf, llm_block, llm_pretrain)
 
 
 def resnet34mamllm(nclasses: int, nf: int = 64) -> ResNetMamLLM:
@@ -304,5 +346,5 @@ def resnet34mamllm(nclasses: int, nf: int = 64) -> ResNetMamLLM:
     """
     return ResNetMamLLM(BasicBlock, [3, 4, 6, 3], nclasses, nf)
 
-def resnet50mamllm(nclasses: int, nf: int=64):
-    return ResNetMamLLM(Bottleneck, [3,4,6,3], nclasses, nf)
+def resnet50mamllm(nclasses: int, nf: int=64, llm_block='sent_transf'):
+    return ResNetMamLLM(Bottleneck, [3,4,6,3], nclasses, nf, llm_block)

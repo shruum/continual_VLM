@@ -4,15 +4,13 @@ import itertools
 
 
 datasets = ['tinyimagenet']
-dataset_dir_lst = { 'cifar10' : '/volumes1/datasets/cifar/CIFAR10',
-                   'cifar100': '/volumes1/code-cls/InBiaseD/data',
-                   'celeba': '/volumes1/datasets',
+dataset_dir_lst = {
                    'tinyimagenet': '/volumes1/datasets/tiny-imagenet-200'
                    }
 # Define parameters
 lst_arch = ['resnet18mamllm'] #'resnet18mam'
 num_runs = 1
-start_seed = 42
+start_seed = 5
 log_file = "../cls/error_log.txt"
 llm_block_lst = ['sent_transf'] #'clip',
 model_params = {
@@ -20,7 +18,7 @@ model_params = {
     "cifar100": {'lr': '0.1', 'epochs': '100', 'wd': '0.0005', 'batch_size': 128},
     "tinyimagenet": {'lr': '0.03', 'epochs': '100', 'wd': '0.0005', 'batch_size': 128},
 }
-lr_lst = [0.0001, 0.001, 0.005]
+lr_lst = [0.01, 0.003]
 wd_lst = [0.01] # 0.0005]
 modes = [ "normal"] #["normal"] #, "vlm"]
 # Create a list of all combinations
@@ -48,7 +46,7 @@ for mode, lr, wd, dataset, arch, llm_block, seed in combinations:
     # wd = model_params[dataset]['wd']
     dataset_dir = dataset_dir_lst[dataset]
 
-    exp_id = f"impl-{mode}-{arch}-{llm_block}-{dataset}-l{lr}-e{epochs}-wd{wd}-s-{seed}"
+    exp_id = f"ix-{mode}-{arch}-{llm_block}-{dataset}-l{lr}-e{epochs}-wd{wd}-s-{seed}"
     print(f"Running experiment {exp_id}")
     # Construct the command
     cmd = [
@@ -65,7 +63,7 @@ for mode, lr, wd, dataset, arch, llm_block, seed in combinations:
         "--ignore_other_metrics", "1",
         "--wandb_project", "continual_VLM",
         "--wandb_entity", "sngowda42",
-        "--output_dir", "/volumes1/vlm-cl/dytox_cls/implicit",
+        "--output_dir", "/volumes1/vlm-cl/dytox_cls/cl",
         "--arch", arch,
         "--scheduler", "cosine",
         "--seed", str(seed),

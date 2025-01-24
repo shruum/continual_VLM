@@ -7,7 +7,7 @@ from typing import Tuple
 import clip
 import torch.nn.functional as F
 import torchvision.transforms as transforms
-from backbone.ResNet18 import *
+from backbone.ResNet import *
 from backbone.ResNet_mam import *
 from backbone.ResNet_mam_llm import *
 from PIL import Image

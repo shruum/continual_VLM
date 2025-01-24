@@ -21,9 +21,13 @@ from utils.args import add_management_args, add_experiment_args, add_auxiliary_a
 from cl_datasets import ContinualDataset
 from utils.best_args import best_args
 from utils.conf import set_random_seed
-from backbone.ResNet18 import *
-from backbone.ResNet_mam_llm import resnet18mamllm
+from backbone.ResNet import *
+from backbone.ResNet_llm import *
+from backbone.ResNet_mam_llm import *
+from backbone.vit import *
+from backbone.vit_llm import *
 from backbone.ResNet_mam import *
+from backbone.clip_classifier import ClipClassifier
 import torch
 import uuid
 import datetime
@@ -86,19 +90,60 @@ def main_normal(args=None):
     args.conf_host = socket.gethostname()
 
     if args.dataset == 'cifar10_imb':
-        dataset = DATASETS[args.dataset](args.dataset_dir, args.perc, args.gamma, args.corrupt_prob)
+        dataset = DATASETS[args.dataset](args.dataset_dir, args.perc, args.c_gamma, args.corrupt_prob)
     else:
-        dataset = DATASETS[args.dataset](args.dataset_dir)
+        if args.dataset == 'cifar10' or args.dataset == 'celeba' or args.dataset == 'cifartint':
+            dataset_args = {"data_path": args.dataset_dir, "arch": args.arch}
+        else:
+            dataset_args = {"data_path": args.dataset_dir}
+        dataset = DATASETS[args.dataset](**dataset_args)
     if args.n_epochs is None and isinstance(dataset, ContinualDataset):
         args.n_epochs = dataset.get_epochs()
     if args.batch_size is None:
         args.batch_size = dataset.get_batch_size()
 
     cifar_resnet = True
-    if args.llama:
-        backbone = resnet18mamllm(dataset.NUM_CLASSES, 64, args.llm_block).to(device)
-    else:
+    # if args.llama:
+    #     backbone = resnet18mamllm(dataset.NUM_CLASSES, 64, args.llm_block).to(device)
+    if args.arch == 'clip_vit':
+        # model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32")
+        model, preprocess = clip.load("ViT-B/32", device=device)
+        model = model.float()
+        # Freeze CLIP's image encoder
+        for param in model.visual.parameters():
+            param.requires_grad = False
+
+        feature_dim = model.visual.output_dim
+        backbone = ClipClassifier(model.visual, feature_dim, dataset.NUM_CLASSES).to(device)
+    elif args.arch == 'clip_res50':
+        model, preprocess = clip.load("RN50", device=device)
+        model = model.float()
+        for param in model.visual.parameters():
+            param.requires_grad = False
+        feature_dim = model.visual.output_dim
+        backbone = ClipClassifier(model.visual, feature_dim, dataset.NUM_CLASSES).to(device)
+
+    elif args.arch == "vitclip":
+        backbone = vitclip(dataset.NUM_CLASSES).to(device)
+    elif args.arch == 'vitsmall':
+        backbone = vitsmall(dataset.NUM_CLASSES).to(device)
+    elif args.arch == "vitsmallllm":
+        backbone = vitsmallllm(dataset.NUM_CLASSES, args.llm_block).to(device)
+    elif args.arch == "resnet18mamllm":
+        backbone = resnet18mamllm(dataset.NUM_CLASSES, 64, args.llm_block, args.llm_pretrain).to(device)
+    elif args.arch == "resnet50":
+        backbone = resnet50(dataset.NUM_CLASSES).to(device)
+    elif args.arch == "resnet50llm":
+        backbone = resnet50llm(dataset.NUM_CLASSES, 64, args.llm_block).to(device)
+    elif args.arch == "resnet18mam":
         backbone = resnet18mam(dataset.NUM_CLASSES).to(device)
+    elif args.arch == "resnet50mam":
+        backbone = resnet50mam(dataset.NUM_CLASSES).to(device)
+    elif args.arch == "resnet50mamllm":
+        backbone = resnet50mamllm(dataset.NUM_CLASSES).to(device)
+    else:
+        raise ValueError('Backbone not found')
+    print("Loading backbone {}".format(backbone._get_name()))
     model = Normal(args, backbone, dataset, device)
 
     if args.debug_mode:

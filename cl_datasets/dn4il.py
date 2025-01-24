@@ -2,7 +2,7 @@ import os
 import numpy as np
 import torchvision.transforms as transforms
 from torch.utils.data import DataLoader, Dataset
-from backbone.ResNet18 import resnet50, resnet18
+from backbone.ResNet import resnet50, resnet18
 from backbone.ResNet_mam import resnet18mam, resnet50mam
 from backbone.ResNet_mam_llm import *
 import torch.nn.functional as F
@@ -133,7 +133,18 @@ class DN4IL(ContinualDataset):
         elif self.args.arch == 'resnet50mam':
             return resnet50mam(DN4IL.N_CLASSES_PER_TASK)
         elif self.args.arch == 'resnet18mamllm':
-            return resnet18mamllm(DN4IL.N_CLASSES_PER_TASK, 64, self.args.llm_block)
+            return resnet18mamllm(DN4IL.N_CLASSES_PER_TASK, 64, self.args.llm_block, self.args.llm_pretrain)
+        elif self.args.arch == 'clip_res50':
+            import clip
+            from backbone.clip_classifier import ClipClassifier
+            device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+            model, preprocess = clip.load("RN50", device=device)
+            model = model.float()
+            for param in model.visual.parameters():
+                param.requires_grad = False
+            feature_dim = model.visual.output_dim
+            backbone = ClipClassifier(model.visual, feature_dim, DN4IL.N_CLASSES_PER_TASK).to(device)
+            return backbone
         else:
             raise (RuntimeError("architecture type not found"))
 

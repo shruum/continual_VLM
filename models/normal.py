@@ -28,7 +28,7 @@ class Normal:
         if self.args.mode == 'vlm':
             self.vlm_loss = lossVLM(self)
             self.text_model = self.args.text_model
-            self.text_encoder = TextEncoder(self.args.text_model, device=self.device, pretrain=True)
+            self.text_encoder = TextEncoder(self.args.text_model, device=self.device, pretrain=self.args.llm_pretrain)
 
     def train_normal(self, train_loader, optimizer, epoch):
 
@@ -38,12 +38,19 @@ class Normal:
         total = 0
         num_batches = len(train_loader)
 
-        for batch_idx, (data, target) in tqdm(enumerate(train_loader), desc='batch training', total=num_batches):
+        # for batch_idx, (data, target) in tqdm(enumerate(train_loader), desc='batch training', total=num_batches, dynamic_ncols=True, leave=False):
+        for batch_idx, (data, target) in enumerate(train_loader):
 
             data, target = data.to(self.device), target.to(self.device)
             optimizer.zero_grad()
 
-            out, features = self.backbone(data, returnt='all')
+            if self.args.arch == 'clip_vit' or self.args.arch == 'clip_res50':
+                out = self.backbone(data)
+                # out, features = outputs.pooler_output, outputs.last_hidden_state.mean(dim=1)
+            elif 'vit' in self.args.arch:
+                out, features = self.backbone(data)
+            else:
+                out, features = self.backbone(data, returnt='all')
             iteration = (epoch * num_batches) + batch_idx
 
             if self.args.mode == 'normal':

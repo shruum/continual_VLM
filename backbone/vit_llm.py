@@ -94,14 +94,14 @@ class PatchEmbed(nn.Module):
         return x
 
 
-class Vit(nn.Module):
+class VitLLM(nn.Module):
     """
     Vision Transformer with support for patch or hybrid CNN input stage
     """
 
     def __init__(self, img_size=224, patch_size=16, in_chans=3, num_classes=1000, embed_dim=768, depth=12,
                  num_heads=12, mlp_ratio=4., qkv_bias=False, qk_scale=None, drop_rate=0., attn_drop_rate=0.,
-                 drop_path_rate=0., norm_layer=nn.LayerNorm, embedding_type="Patch", data_type=""):
+                 drop_path_rate=0., norm_layer=nn.LayerNorm, embedding_type="Patch", llm_block="sent_transf", data_type=""):
         super().__init__()
         self.num_classes = num_classes
         self.num_features = self.embed_dim = embed_dim  # num_features for consistency with other models
@@ -130,6 +130,23 @@ class Vit(nn.Module):
         trunc_normal_(self.pos_embed, std=.02)
         trunc_normal_(self.cls_token, std=.02)
         self.apply(self._init_weights)
+
+        self.llm_block =llm_block
+        if self.llm_block == 'clip':
+            from transformers import CLIPModel
+            self.llm = CLIPModel.from_pretrained("openai/clip-vit-base-patch32")
+            llm_hidden_size = self.llm.config.text_config.hidden_size
+            print("Loading CLIP LLM model")
+        elif self.llm_block == 'sent_transf':
+            from sentence_transformers import SentenceTransformer
+            self.llm = SentenceTransformer('all-MiniLM-L6-v2')
+            llm_hidden_size = self.llm.get_sentence_embedding_dimension()
+            print("Loading Sent Transformer LLM model")
+
+        for param in self.llm.parameters():
+            param.requires_grad = False
+        self.llm_dim_mapper1 = nn.Linear(self.embed_dim, llm_hidden_size)
+        self.llm_dim_mapper2 = nn.Linear(llm_hidden_size, self.embed_dim)
 
     def _init_weights(self, m):
         if isinstance(m, nn.Linear):
@@ -167,10 +184,23 @@ class Vit(nn.Module):
         return x[:,0]
 
     def forward(self, x):
-        feat = self.forward_features(x)
+        x = self.forward_features(x)
+        out_proj = self.llm_dim_mapper1(x)  # Flatten
 
-        out = self.head(feat)
-        return out, feat #torch.zeros(x.shape[0], 3)
+        if self.llm_block == 'clip':
+            llm_output = self.llm.text_model.encoder(inputs_embeds=x).last_hidden_state
+        elif self.llm_block == 'sent_transf':
+            transformer_model = self.llm[0].auto_model  # Get the Hugging Face transformer model
+            transformer_output = transformer_model(
+                inputs_embeds=out_proj.unsqueeze(1),  # Add the sequence dimension
+                output_hidden_states=False,  # Don't need all hidden states, just the last output
+                return_dict=True  # Use Hugging Face's return dict
+            )
+            llm_output = transformer_output.last_hidden_state
+
+        feature_l = self.llm_dim_mapper2(llm_output.squeeze(1))
+        out = self.head(feature_l)
+        return out, torch.zeros(out.shape[0], 3)
 
     def features(self, x: torch.Tensor) -> torch.Tensor:
         """
@@ -217,31 +247,21 @@ class Vit(nn.Module):
         return torch.cat(grads)
 
 
-def vittiny(nclasses: int, p_size=4, embed_type=None, depth=12):
+def vittinyllm(nclasses: int, llm_block='sent_transf', p_size=4, embed_type=None, depth=12):
     """
     Instantiates a Deit-Tiny network.
     :param nclasses: number of output classes
     :param nf: number of filters
     :return: DeitTiny network
     """
-    return Vit(img_size=32,
+    return VitLLM(img_size=32,
         patch_size=p_size, embed_dim=192, depth=depth, num_heads=3, mlp_ratio=4, qkv_bias=True,
-        norm_layer=partial(nn.LayerNorm, eps=1e-6), num_classes=nclasses, embedding_type=embed_type)
-    # return Vit(img_size=224, patch_size=16, num_classes=100,
-    #                        embed_dim=384, depth=12, num_heads=6, mlp_ratio=4.0, dropout=0.1)
+        norm_layer=partial(nn.LayerNorm, eps=1e-6), num_classes=nclasses, embedding_type=embed_type, llm_block=llm_block)
 
-def vitsmall(nclasses: int, p_size=4, embed_type=None, depth=12):
-    return Vit(img_size=224, patch_size=16, num_classes=nclasses,
-                           embed_dim=384, depth=12, num_heads=6, mlp_ratio=4.0, drop_rate=0.1)
+def vitsmallllm(nclasses: int, llm_block='sent_transf', p_size=4, embed_type=None, depth=12):
+    return VitLLM(img_size=224, patch_size=16, num_classes=100,
+                           embed_dim=384, depth=12, num_heads=6, mlp_ratio=4.0, drop_rate=0.1, llm_block=llm_block)
 
-def vitbase(nclasses: int, p_size=4, embed_type=None, depth=12):
-    return Vit(img_size=224, patch_size=16, num_classes=nclasses,
-                           embed_dim=768, depth=12, num_heads=12, mlp_ratio=4.0, drop_rate=0.1)
-
-
-def vitclip(nclasses: int, embed_type=None, depth=12):
-    """
-    Instantiates a ViT-B/32 network.
-    """
-    return Vit(img_size=224, patch_size=32, num_classes=nclasses,
-               embed_dim=768, depth=depth, num_heads=12, mlp_ratio=4.0, drop_rate=0.1)
+def vitbasellm(nclasses: int, llm_block='sent_transf',p_size=4, embed_type=None, depth=12):
+    return VitLLM(img_size=224, patch_size=16, num_classes=100,
+                           embed_dim=768, depth=12, num_heads=12, mlp_ratio=4.0, drop_rate=0.1, llm_block=llm_block)

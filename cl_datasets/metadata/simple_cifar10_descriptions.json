@@ -1,0 +1,32 @@
+{
+  "car (automobile)": [
+    "This is a car (automobile)"
+  ],
+  "airplane": [
+    "This is a airplane"
+  ],
+  "bird": [
+    "This is a bird"
+  ],
+  "cat": [
+    "This is a cat"
+  ],
+  "deer": [
+    "This is a deer"
+  ],
+  "dog": [
+    "This is a dog"
+  ],
+  "frog": [
+    "This is a frog"
+  ],
+  "horse": [
+    "This is a horse"
+  ],
+  "cargo ship": [
+    "This is a cargo ship"
+  ],
+  "truck": [
+    "This is a truck"
+  ]
+}

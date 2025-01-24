@@ -8,7 +8,7 @@ import numpy as np
 import torchvision.transforms as transforms
 from torchvision import datasets
 from torch.utils.data import Dataset
-from backbone.ResNet18 import resnet18, resnet50
+from backbone.ResNet import resnet18, resnet50
 from backbone.ResNet_mam_llm import *
 from backbone.ResNet_mam import resnet18mam, resnet50mam
 import torch.nn.functional as F

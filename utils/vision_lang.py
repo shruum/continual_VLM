@@ -7,8 +7,10 @@ from models.text.text_enc import get_text_embeddings
 
 TEX_DIM = {
     "sent_transf": 384,
+    "sent_transf_large": 1024,
     "bert": 768,
-    "clip": 512
+    "clip": 512,
+    "code_lm":512
 }
 
 class lossVLM():

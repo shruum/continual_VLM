@@ -67,14 +67,22 @@ def adjust_learning_rate(epoch, epoch_steps, epoch_decay, optimizer):
         print('=' * 60 + '\nChanging learning rate to %g\n' % (current_lr * epoch_decay) + '=' * 60)
 
 
-def eval(model, device, data_loader):
+def eval(model, device, data_loader, args=None):
     model.eval()
     loss = 0
     correct = 0
     with torch.no_grad():
         for data, target in data_loader:
             data, target = data.to(device), target.to(device)
-            output = model(data)
+
+            if args.arch == 'clip_vit':
+                output = model(data)
+                # output, _ = out.pooler_output, out.last_hidden_state.mean(dim=1)
+            elif 'vit' in args.arch : #vittiny' or args.arch == 'vittinyllm' or args.arch == 'vitsmall' or args.arch == 'vitsmallllm':
+                output, _ = model(data)
+            else:
+                output = model(data)
+
             loss += F.cross_entropy(output, target).item()
             pred = output.max(1, keepdim=True)[1]
             correct += pred.eq(target.view_as(pred)).sum().item()
@@ -96,10 +104,11 @@ def train_normal(args, dataset, model):
     test_loader = torch.utils.data.DataLoader(testset, batch_size=args.batch_size,
                                               shuffle=False, num_workers=args.num_workers)
 
-    if args.arch == 'resnet18mamllm':
-        optimizer = AdamW(model.backbone.parameters(), lr=args.lr, betas=(0.9,0.98), eps=1e-6,weight_decay=args.optim_wd) #lr=5e-5,betas=(0.9,0.98),eps=1e-6,weight_decay=0.2)
+    if 'llm' in args.arch or "vit" in args.arch:
+        optimizer = AdamW(model.backbone.parameters(), lr=args.lr, weight_decay=args.optim_wd)
     else:
         optimizer = SGD(model.backbone.parameters(), lr=args.lr, momentum=0.9, weight_decay=args.optim_wd)
+    print("Optimizer:", optimizer.__class__.__name__)
 
     scheduler = None
     if args.scheduler == 'multistep':
@@ -126,7 +135,7 @@ def train_normal(args, dataset, model):
 
         model.train_normal(train_loader, optimizer, epoch)
 
-        if dataset.__class__.__name__ == 'Imagenet100' and epoch % 10 == 0:
+        if dataset.__class__.__name__ == 'Imagenet100' and epoch % 25 == 0:
             checkpoint_data = {
                 'state_dict': model.backbone.state_dict(),
                 'optimizer': optimizer.state_dict(),
@@ -138,7 +147,7 @@ def train_normal(args, dataset, model):
             print(f"Checkpoint saved at epoch {epoch}")
 
     # get final test accuracy
-    test_loss, test_accuracy, correct = eval(model.backbone, model.device, test_loader)
+    test_loss, test_accuracy, correct = eval(model.backbone, model.device, test_loader, args)
     save_results_normal(args, os.path.join(args.output_dir, args.experiment_id, 'results.csv'),
                                  test_loss, test_accuracy)
 

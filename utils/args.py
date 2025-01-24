@@ -4,7 +4,6 @@
 # LICENSE file in the root directory of this source tree.
 
 from argparse import ArgumentParser
-from cl_datasets import NAMES as DATASET_NAMES
 from models import get_all_models
 from datetime import datetime
 
@@ -75,6 +74,7 @@ def add_management_args(parser: ArgumentParser) -> None:
     parser.add_argument('--wandb_entity', type=str, default='regaz', help='Wandb entity')
     parser.add_argument('--wandb_project', type=str, default='mammoth', help='Wandb project name')
     parser.add_argument('--save_model', action='store_true')
+    parser.add_argument('--llm_pretrain', type=str, default='True')
 
 
 def add_rehearsal_args(parser: ArgumentParser) -> None:
@@ -107,7 +107,7 @@ def add_auxiliary_args(parser: ArgumentParser) -> None:
     parser.add_argument('--ser_weight', type=float, default=0.1)
 
     parser.add_argument('--perc', type=float, default=1.0)
-    parser.add_argument('--gamma', type=float, default=-1)
+    parser.add_argument('--c_gamma', type=float, default=-1)
     parser.add_argument('--corrupt_prob', type=float, default=0.0)
 
     parser.add_argument('--gpt_path', type=str, required=False)
