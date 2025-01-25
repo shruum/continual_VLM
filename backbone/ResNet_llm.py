@@ -147,12 +147,12 @@ class ResNetLLM(MammothBackbone):
             from transformers import CLIPModel
             self.llm = CLIPModel.from_pretrained("openai/clip-vit-base-patch32")
             llm_hidden_size = self.llm.config.text_config.hidden_size
-            self.transformer_model = self.llm[0].auto_model
             print("Loading CLIP LLM model")
         elif self.llm_block == 'sent_transf':
             from sentence_transformers import SentenceTransformer
             self.llm = SentenceTransformer('all-MiniLM-L6-v2')
             llm_hidden_size = self.llm.get_sentence_embedding_dimension()
+            self.transformer_model = self.llm[0].auto_model
             print("Loading Sent Transformer LLM model")
 
         for param in self.llm.parameters():
