@@ -29,7 +29,11 @@ class SI(ContinualModel):
 
     def __init__(self, backbone, loss, args, transform):
         super(SI, self).__init__(backbone, loss, args, transform)
-
+        def to_device(net, device):
+            for param in net.parameters():
+                param.data = param.data.to(device)
+            return net
+        self.net = to_device(self.net, self.device)
         self.checkpoint = self.net.get_params().data.clone().to(self.device)
         self.big_omega = None
         self.small_omega = 0

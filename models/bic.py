@@ -137,7 +137,7 @@ class BiC(ContinualModel):
                 ret[:, start_last_task:end_last_task] += self.corr_factors[0].repeat_interleave(end_last_task - start_last_task)
         return ret
 
-    def observe(self, inputs, labels, not_aug_inputs):
+    def observe(self, inputs, labels, not_aug_inputs, dataset=None):
         self.opt.zero_grad()
         outputs = self.net(inputs)
 
