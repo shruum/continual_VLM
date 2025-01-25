@@ -147,6 +147,7 @@ class ResNetLLM(MammothBackbone):
             from transformers import CLIPModel
             self.llm = CLIPModel.from_pretrained("openai/clip-vit-base-patch32")
             llm_hidden_size = self.llm.config.text_config.hidden_size
+            self.transformer_model = self.llm[0].auto_model
             print("Loading CLIP LLM model")
         elif self.llm_block == 'sent_transf':
             from sentence_transformers import SentenceTransformer
@@ -204,8 +205,7 @@ class ResNetLLM(MammothBackbone):
         if self.llm_block == 'clip':
             llm_output = self.llm.text_model.encoder(inputs_embeds=out_4_proj.unsqueeze(1)).last_hidden_state
         elif self.llm_block == 'sent_transf':
-            transformer_model = self.llm[0].auto_model  # Get the Hugging Face transformer model
-            transformer_output = transformer_model(
+            transformer_output = self.transformer_model(
                 inputs_embeds=out_4_proj.unsqueeze(1),  # Add the sequence dimension
                 output_hidden_states=False,  # Don't need all hidden states, just the last output
                 return_dict=True  # Use Hugging Face's return dict
