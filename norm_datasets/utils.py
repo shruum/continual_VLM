@@ -3,6 +3,7 @@ import torch
 import os.path
 import PIL
 import numpy as np
+import pandas as pd
 from PIL import Image
 from torchvision.datasets.utils import check_integrity, download_and_extract_archive, verify_str_arg, download_file_from_google_drive
 from typing import Union
@@ -11,7 +12,9 @@ import torch.utils.data as data
 from typing import Any, Callable, List, Optional, Tuple
 import torch.utils.data as data_utils
 from torch.utils.data import TensorDataset, DataLoader
-
+from torchvision.datasets import ImageFolder
+import glob
+from torchvision.io import read_image, ImageReadMode
 
 VALID_SPURIOUS = [
     'TINT',  # apply a fixed class-wise tinting (meant to not affect shape)
@@ -120,8 +123,6 @@ class ImageFilelist(torch.utils.data.Dataset):
         else:
             img = self.loader(self.images[index])
             target = self.labels[index]
-
-        img_fp = img
 
         if self.transform is not None:
             img = self.transform(img)
@@ -423,7 +424,7 @@ def celeb_indicies(split, ds, attr_names_map, unlabel_skew=True):
 
     print(split, len(indices))
     if split == 'test':
-        return data_utils.TensorDataset(torch.stack(imgs), torch.tensor(ys), torch.tensor(is_blonde))
+        return data_utils.TensorDataset(torch.stack(imgs), torch.tensor(ys)) #, torch.tensor(is_blonde))
     else:
         return data_utils.TensorDataset(torch.stack(imgs), torch.tensor(ys))
 
@@ -476,3 +477,65 @@ class cif_tint(torch.utils.data.Dataset):
     def __len__(self):
         return len(self.dataset)
 
+class waterbird_shortcut(torch.utils.data.Dataset):
+    def __init__(self, data_dir, data, transform=None, seed=42):
+        self.data = data
+        self.data_dir = data_dir
+        self.transform = transform
+    def __getitem__(self, idx):
+        item = self.data.iloc[idx]
+        y = item["y"].item()
+        filename = item["img_filename"]
+        X = Image.open(os.path.join(self.data_dir, filename)).convert("RGB")
+        if self.transform is not None:
+            X = self.transform(X)
+        y = torch.tensor(y)
+
+        background = item["place"]
+        return X, y, background
+    def __len__(self):
+        return self.data.shape[0]
+
+class TinyImageNetValWithLabels(torch.utils.data.Dataset):
+    def __init__(self, root, annotations_file, transform=None):
+        self.root=root
+        self.filenames = glob.glob(os.path.join(root,'val','images',"*.JPEG"))
+        self.transform = transform
+        self.id_dict = {}
+        for i, line in enumerate(open(os.path.join(root, 'wnids.txt'), 'r')):
+            self.id_dict[line.replace('\n', '')] = i
+        self.cls_dic = {}
+        for i, line in enumerate(open(annotations_file, 'r')):
+            a = line.split('\t')
+            img, cls_id = a[0], a[1]
+            self.cls_dic[img] = self.id_dict[cls_id]
+
+    def __len__(self):
+        return len(self.filenames)
+
+    def __getitem__(self, idx):
+        img_path = self.filenames[idx]
+        image = Image.open(img_path).convert('RGB')
+        # if image.shape[0] == 1:
+        #     image = read_image(img_path, ImageReadMode.RGB)
+        label = self.cls_dic[img_path.split('/')[-1]]
+        if self.transform:
+            image = self.transform(image)
+        return image, label
+
+class MappedImageFolder(ImageFolder):
+    def __init__(self, root, transform=None, target_transform=None, label_mapping=None):
+        super(MappedImageFolder, self).__init__(root, transform, target_transform)
+        self.label_mapping = label_mapping
+
+    def __getitem__(self, index):
+        path, target = self.samples[index]
+        sample = self.loader(path)
+        if self.transform is not None:
+            sample = self.transform(sample)
+        if self.label_mapping is not None:
+            # Remap the target label
+            wnid = self.classes[target]  # Get WNID from target
+            if wnid in self.label_mapping:
+                target = self.label_mapping[wnid]  # Map WNID to new target label
+        return sample, target
