@@ -4,7 +4,7 @@ import pandas as pd
 import json
 import torchvision
 from torchvision import datasets, transforms
-from norm_datasets.utils import celeb_indicies, cif_tint, MappedImageFolder, waterbird_shortcut
+from norm_datasets.utils import celeb_indicies, cif_tint, MappedImageFolder, waterbird_shortcut, ImageNetVal
 from norm_datasets.cifar_imbalance import CIFAR10ImbalancedNoisy
 from torch.utils.data import DataLoader, ConcatDataset
 
@@ -434,6 +434,35 @@ class Waterbirds:
             ds = waterbird_shortcut(self.data_dir, self.test_data, transform=self.transform_test)
         return ds
 
+class Imagenet1k:
+    NUM_CLASSES = 1000  # can adjust this based on subset used
+    MEAN = [0.485, 0.456, 0.406]
+    STD = [0.229, 0.224, 0.225]
+    SIZE = 224
+
+    def __init__(self, data_path):
+        self.data_path = data_path
+        self.transform_train = transforms.Compose([
+            transforms.Resize((Imagenet1k.SIZE, Imagenet1k.SIZE)),
+            transforms.RandomHorizontalFlip(),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=Imagenet1k.MEAN, std=Imagenet1k.STD),
+        ])
+        self.transform_test = transforms.Compose([
+            transforms.Resize((Imagenet1k.SIZE, Imagenet1k.SIZE)),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=Imagenet1k.MEAN, std=Imagenet1k.STD),
+        ])
+
+    def get_dataset(self, split, transform_train=None, transform_test=None):
+        assert split in ['train', 'test']
+        if split == 'train':
+            ds = torchvision.datasets.ImageFolder(os.path.join(self.data_path, 'train'), transform=self.transform_train)
+            self.CLASS_ID = ds.class_to_idx
+        else:
+            val_txt_path = os.path.join(self.data_path, '../../ImageSets/CLS-LOC/val.txt')
+            ds = ImageNetVal(os.path.join(self.data_path, 'val'), val_txt_path, self.CLASS_ID, transform=self.transform_test)
+        return ds
 
 DATASETS = {
     'cifar10': CIFAR10,
@@ -448,6 +477,8 @@ DATASETS = {
     'tinystyle':TinyImagenetStyle,
     'imagenet100':Imagenet100,
     'waterbirds': Waterbirds,
+    'imagenet1k': Imagenet1k,
+
     # 'col_mnist': coloredMNIST,
     # 'cor_cifar10': Corrupt_CIFAR10,
     # 'cor_tinyimagenet':Corrupt_TinyImagenet

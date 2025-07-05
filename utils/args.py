@@ -70,12 +70,12 @@ def add_management_args(parser: ArgumentParser) -> None:
     parser.add_argument('--validation', default=0, choices=[0, 1], type=int, help='Test on the validation set')
     parser.add_argument('--ignore_other_metrics', default=0, choices=[0, 1], type=int, help='disable additional metrics')
     parser.add_argument('--debug_mode', type=int, default=0, help='Run only a few forward steps per epoch')
-    parser.add_argument('--nowand', default=0, choices=[0, 1], type=int, help='Inhibit wandb logging')
+    parser.add_argument('--nowand', default=1, choices=[0, 1], type=int, help='Inhibit wandb logging')
     parser.add_argument('--wandb_entity', type=str, default='regaz', help='Wandb entity')
     parser.add_argument('--wandb_project', type=str, default='mammoth', help='Wandb project name')
     parser.add_argument('--save_model', action='store_true')
     parser.add_argument('--llm_pretrain', type=str, default='True')
-
+    parser.add_argument('--pretrained', action='store_true')
 
 def add_rehearsal_args(parser: ArgumentParser) -> None:
     """
@@ -84,6 +84,9 @@ def add_rehearsal_args(parser: ArgumentParser) -> None:
     """
     parser.add_argument('--buffer_size', type=int, required=True, help='The size of the memory buffer.')
     parser.add_argument('--minibatch_size', type=int, help='The batch size of the memory buffer.')
+    parser.add_argument('--rehearsal', type=str, default='img', choices=['img', 'shape'])
+    parser.add_argument('--tint_mode', type=str, default='class', choices=['class', 'task', 'category'])
+    parser.add_argument('--shape_prob', type=float, default=0.0)
 
 def add_auxiliary_args(parser: ArgumentParser) -> None:
     """
@@ -112,6 +115,8 @@ def add_auxiliary_args(parser: ArgumentParser) -> None:
 
     parser.add_argument('--gpt_path', type=str, required=False)
     parser.add_argument('--loss_loc', type=str, default='before', choices=['before', 'after'])
+
+
 
     # choices=["cl_datasets/metadata/cifar10_descriptions.json",
     # "/volumes1/datasets/tinyimagenet_description.json",

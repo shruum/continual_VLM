@@ -217,6 +217,16 @@ class ResNetMamLLM(MammothBackbone):
 
         self.classifier = nn.Linear(nf * 8 * block.expansion, num_classes)
 
+    def get_params(self) -> torch.Tensor:
+        """
+        Returns all the parameters concatenated in a single tensor.
+        :return: parameters tensor (??)
+        """
+        params = []
+        for name, pp in list(self.named_parameters()):
+            if not name.startswith("llm."):
+                params.append(pp.view(-1))
+        return torch.cat(params)
 
     def set_return_prerelu(self, enable=True):
         self.return_prerelu = enable
@@ -270,6 +280,7 @@ class ResNetMamLLM(MammothBackbone):
 
         feature = avg_pool2d(out_4, out_4.shape[2])  # -> 512, 1, 1
         feature = feature.view(feature.size(0), -1)  # 512
+
         if returnt == 'features':
             return feature
 
@@ -348,3 +359,13 @@ def resnet34mamllm(nclasses: int, nf: int = 64) -> ResNetMamLLM:
 
 def resnet50mamllm(nclasses: int, nf: int=64, llm_block='sent_transf'):
     return ResNetMamLLM(Bottleneck, [3,4,6,3], nclasses, nf, llm_block)
+
+
+# if __name__ == '__main__':
+#
+# model = resnet18mamllm(nclasses=20)
+#
+# for name, _ in model.named_parameters():
+#     print(name)
+
+

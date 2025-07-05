@@ -224,6 +224,8 @@ class ResNetLLM(MammothBackbone):
         raise NotImplementedError("Unknown return type")
 
 
+def resnet18llm(nclasses: int, nf: int=64, llm_block='sent_transf'):
+    return ResNetLLM(Bottleneck, [2, 2, 2, 2], nclasses, nf, llm_block)
 
 def resnet50llm(nclasses: int, nf: int=64, llm_block='sent_transf'):
     return ResNetLLM(Bottleneck, [3,4,6,3], nclasses, nf, llm_block)

@@ -186,14 +186,27 @@ class ResNet(MammothBackbone):
         raise NotImplementedError("Unknown return type")
 
 
-def resnet18(nclasses: int, nf: int=64) -> ResNet:
+def resnet18(nclasses: int, nf: int=64, pretrained: bool = False) -> ResNet:
     """
     Instantiates a ResNet18 network.
     :param nclasses: number of output classes
     :param nf: number of filters
     :return: ResNet network
     """
-    return ResNet(BasicBlock, [2, 2, 2, 2], nclasses, nf)
+    model =  ResNet(BasicBlock, [2, 2, 2, 2], nclasses, nf)
+    if pretrained:
+        from torchvision.models import resnet18 as tv_resnet18
+        pretrained_model = tv_resnet18(pretrained=True)
+        model_dict = model.state_dict()
+        pretrained_dict = pretrained_model.state_dict()
+
+        # Filter out unnecessary keys and update the existing model's state_dict
+        pretrained_dict = {k: v for k, v in pretrained_dict.items() if k in model_dict}
+        model_dict.update(pretrained_dict)
+        model.load_state_dict(model_dict)
+        print("loaded Pretrained weights for ResNET18")
+
+    return model
 
 def resnet50(nclasses: int, nf: int=64):
     return ResNet(Bottleneck, [3,4,6,3], nclasses, nf)

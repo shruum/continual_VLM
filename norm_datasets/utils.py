@@ -15,6 +15,7 @@ from torch.utils.data import TensorDataset, DataLoader
 from torchvision.datasets import ImageFolder
 import glob
 from torchvision.io import read_image, ImageReadMode
+from torch.utils.data import Dataset
 
 VALID_SPURIOUS = [
     'TINT',  # apply a fixed class-wise tinting (meant to not affect shape)
@@ -539,3 +540,28 @@ class MappedImageFolder(ImageFolder):
             if wnid in self.label_mapping:
                 target = self.label_mapping[wnid]  # Map WNID to new target label
         return sample, target
+
+class ImageNetVal(Dataset):
+    def __init__(self, val_dir, val_txt_path, class_to_idx, transform=None):
+        self.val_dir = val_dir
+        self.transform = transform
+        self.samples = []
+
+        # Read val.txt
+        with open(val_txt_path, 'r') as f:
+            for line in f:
+                fname, wnid = line.strip().split()
+                if wnid in class_to_idx:
+                    label = class_to_idx[wnid]
+                    path = os.path.join(val_dir, fname + '.JPEG')
+                    self.samples.append((path, label))
+
+    def __len__(self):
+        return len(self.samples)
+
+    def __getitem__(self, idx):
+        path, label = self.samples[idx]
+        img = Image.open(path).convert('RGB')
+        if self.transform:
+            img = self.transform(img)
+        return img, label
