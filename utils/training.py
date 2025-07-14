@@ -18,11 +18,11 @@ from utils.loggers import *
 from utils.status import ProgressBar
 import numpy as np
 
-# try:
-#     import wandb
-#     wandb.login(key='fa9d5ad248f922603618680d1197fcb953d7d32e')
-# except ImportError or AttributeError:
-#     wandb = None
+try:
+    import wandb
+    wandb.login(key='aea8c8f148fd1c9feba13c1ecacb37ef951e6c05')
+except ImportError or AttributeError:
+    wandb = None
 
 def mask_classes(outputs: torch.Tensor, dataset: ContinualDataset, k: int) -> None:
     """
@@ -94,9 +94,10 @@ def train(model: ContinualModel, dataset: ContinualDataset,
     print(args)
 
     if not args.nowand:
-        assert wandb is not None, "Wandb not installed, please install it or run without wandb"
+        # assert wandb is not None, "Wandb not installed, please install it or run without wandb"
         print(args.wandb_project)
         print(args.wandb_entity)
+        # wandb.login(key="aea8c8f148fd1c9feba13c1ecacb37ef951e6c05")
         wandb.init(project=args.wandb_project, entity=args.wandb_entity, config=vars(args))
         args.wandb_url = wandb.run.get_url()
 

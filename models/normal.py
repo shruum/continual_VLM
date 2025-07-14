@@ -4,6 +4,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import torch
+import wandb
 
 from utils.args import *
 from utils.vision_lang import lossVLM
@@ -61,10 +62,12 @@ class Normal:
             # perform back propagation
             loss.backward()
             optimizer.step()
-
+            
             train_loss += loss.data.item()
             _, predicted = torch.max(out.data, 1)
             total += target.size(0)
             correct += predicted.eq(target.data).cpu().float().sum()
             b_idx = batch_idx
         print('Loss: %.3f | Acc: %.3f%% (%d/%d)' % (train_loss / (b_idx + 1), 100. * correct / total, correct, total))
+        if not self.args.nowand:
+            wandb.log({"train_loss": train_loss / (b_idx + 1), "train_acc": 100. * correct / total})

@@ -547,12 +547,24 @@ class ImageNetVal(Dataset):
         self.transform = transform
         self.samples = []
 
+        img_to_id_path = 'cl_datasets/metadata/ILSVRC2012_validation_ground_truth.txt'
+        id_to_cat_path = 'cl_datasets/metadata/id2wnid&class.txt'
+
+
+        with open(img_to_id_path) as f:
+            val_labels = [int(line.strip()) - 1 for line in f]  # Convert to 0-based
+        
+        with open(id_to_cat_path) as f:
+            lines = f.readlines()
+            self.id_to_cat = {int(line.strip().split(',')[0]) - 1: int(line.strip().split(',')[2]) for line in lines}
+        
         # Read val.txt
         with open(val_txt_path, 'r') as f:
             for line in f:
                 fname, wnid = line.strip().split()
-                if wnid in class_to_idx:
-                    label = class_to_idx[wnid]
+                wnid = int(wnid)  # Convert to integer
+                if wnid < len(val_labels):
+                    label = self.id_to_cat[val_labels[wnid-1]]
                     path = os.path.join(val_dir, fname + '.JPEG')
                     self.samples.append((path, label))
 

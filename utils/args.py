@@ -13,6 +13,8 @@ def add_experiment_args(parser: ArgumentParser) -> None:
     Adds the arguments used by all the models.
     :param parser: the parser instance
     """
+    parser.add_argument('--log_interval', type=int, default=1,
+                        help='Logging interval for training progress.')
     parser.add_argument('--experiment_id', type=str,
                         default=datetime.now().strftime("%Y%m%d_%H%M%S_%f"),
                         help='Unique identifier for the experiment.')

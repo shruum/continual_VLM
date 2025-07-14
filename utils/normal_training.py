@@ -7,6 +7,13 @@ from torch.optim import SGD, Adam, AdamW
 from torch.utils.tensorboard import SummaryWriter
 import torch.nn.functional as F
 import glob
+import wandb
+
+# try:
+#     import wandb
+#     wandb.login(key='aea8c8f148fd1c9feba13c1ecacb37ef951e6c05')
+# except ImportError or AttributeError:
+#     wandb = None
 
 def get_latest_checkpoint(output_dir, experiment_id):
     # List all checkpoint files matching the pattern checkpoint_[epoch].pth
@@ -92,6 +99,14 @@ def eval(model, device, data_loader, args=None):
     return loss, accuracy, correct
 
 def train_normal(args, dataset, model):
+    
+    if not args.nowand:
+        # assert wandb is not None, "Wandb not installed, please install it or run without wandb"
+        print(args.wandb_project)
+        print(args.wandb_entity)
+        # wandb.login(key="aea8c8f148fd1c9feba13c1ecacb37ef951e6c05")
+        wandb.init(project=args.wandb_project, entity=args.wandb_entity, config=vars(args))
+        args.wandb_url = wandb.run.get_url()
 
     transform_train = dataset.transform_train
     transform_test = dataset.transform_test
@@ -145,6 +160,13 @@ def train_normal(args, dataset, model):
             os.makedirs(os.path.join(args.output_dir, args.experiment_id), exist_ok=True)
             torch.save(checkpoint_data, epoch_checkpoint_path)
             print(f"Checkpoint saved at epoch {epoch}")
+        
+        if not args.nowand and epoch % args.log_interval == 0:
+            # evaluate on test set
+            test_loss, test_accuracy, correct = eval(model.backbone, model.device, test_loader, args)
+            print(f'Epoch {epoch}: Test Loss: {test_loss:.4f}, Test Accuracy: {test_accuracy * 100:.2f}%')
+            if not args.nowand:
+                wandb.log({"Epoch": epoch, "test_loss": test_loss, "test_acc": test_accuracy * 100})
 
     # get final test accuracy
     test_loss, test_accuracy, correct = eval(model.backbone, model.device, test_loader, args)
