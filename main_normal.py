@@ -131,10 +131,10 @@ def main_normal(args=None):
         backbone = vitsmallllm(dataset.NUM_CLASSES, args.llm_block).to(device)
     elif args.arch == "resnet18mamllm":
         backbone = resnet18mamllm(dataset.NUM_CLASSES, 64, args.llm_block, args.llm_pretrain).to(device)
-    elif args.arch == "resnet50":
-        backbone = resnet50(dataset.NUM_CLASSES).to(device)
     elif args.arch == "resnet18":
         backbone = resnet18(dataset.NUM_CLASSES).to(device)
+    elif args.arch == "resnet50":
+        backbone = resnet50(dataset.NUM_CLASSES).to(device)
     elif args.arch == "resnet18llm":
         backbone = resnet18llm(dataset.NUM_CLASSES, 64, args.llm_block).to(device)
     elif args.arch == "resnet50llm":

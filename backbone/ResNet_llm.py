@@ -138,7 +138,7 @@ class ResNetLLM(MammothBackbone):
 
         if self.num_classes == 2: #celeb
             self.embed_dim = 73728
-        elif self.num_classes == 100: #imagenet
+        elif self.num_classes == 1000: #imagenet
             self.embed_dim = 100352
         self.feature_dim = nf * 8 * block.expansion
         self.llm_block =llm_block
@@ -223,6 +223,8 @@ class ResNetLLM(MammothBackbone):
 
         raise NotImplementedError("Unknown return type")
 
+def resnet18llm(nclasses: int, nf: int=64, llm_block='sent_transf'):
+    return ResNetLLM(Bottleneck, [2, 2, 2, 2], nclasses, nf, llm_block)
 
 def resnet18llm(nclasses: int, nf: int=64, llm_block='sent_transf'):
     return ResNetLLM(Bottleneck, [2, 2, 2, 2], nclasses, nf, llm_block)

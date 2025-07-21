@@ -150,7 +150,7 @@ def train_normal(args, dataset, model):
 
         model.train_normal(train_loader, optimizer, epoch)
 
-        if dataset.__class__.__name__ == 'Imagenet100' and epoch % 25 == 0:
+        if dataset.__class__.__name__ == 'Imagenet1k' and epoch % 5 == 0:
             checkpoint_data = {
                 'state_dict': model.backbone.state_dict(),
                 'optimizer': optimizer.state_dict(),

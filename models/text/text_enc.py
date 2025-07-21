@@ -177,7 +177,7 @@ def get_text_embeddings(model, labels, dataset=None, dataloader=None, prompt='a 
             CLASS_ID = dataloader.dataset.class_to_idx
             class_name = list(CLASS_ID.keys())[label.item()]
             sentences.append(descriptions[class_name])
-        elif model.args.dataset == 'imagenet100':
+        elif model.args.dataset == 'imagenet100' or model.args.dataset == 'imagenet1k':
             CLASS_ID = dataloader.dataset.class_to_idx
             class_name = list(CLASS_ID.keys())[label.item()]
             sentences.append(descriptions[class_name])

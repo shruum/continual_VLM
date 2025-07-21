@@ -2,6 +2,7 @@ import os
 import torch
 import os.path
 import PIL
+import json
 import numpy as np
 import pandas as pd
 from PIL import Image
@@ -493,7 +494,7 @@ class waterbird_shortcut(torch.utils.data.Dataset):
         y = torch.tensor(y)
 
         background = item["place"]
-        return X, y, background
+        return X, y #,background
     def __len__(self):
         return self.data.shape[0]
 
@@ -550,23 +551,37 @@ class ImageNetVal(Dataset):
         img_to_id_path = 'cl_datasets/metadata/ILSVRC2012_validation_ground_truth.txt'
         id_to_cat_path = 'cl_datasets/metadata/id2wnid&class.txt'
 
-
         with open(img_to_id_path) as f:
             val_labels = [int(line.strip()) - 1 for line in f]  # Convert to 0-based
-        
         with open(id_to_cat_path) as f:
             lines = f.readlines()
             self.id_to_cat = {int(line.strip().split(',')[0]) - 1: int(line.strip().split(',')[2]) for line in lines}
-        
+
         # Read val.txt
         with open(val_txt_path, 'r') as f:
             for line in f:
                 fname, wnid = line.strip().split()
                 wnid = int(wnid)  # Convert to integer
                 if wnid < len(val_labels):
-                    label = self.id_to_cat[val_labels[wnid-1]]
+                    label = self.id_to_cat[val_labels[wnid - 1]]
                     path = os.path.join(val_dir, fname + '.JPEG')
                     self.samples.append((path, label))
+
+        # with open(class_index_json, 'r') as f:
+        #     wnid_to_idx = json.load(f)
+        # label_to_wnid = {}
+        # with open(label_to_wnid_txt, 'r') as f:
+        #     for line in f:
+        #         label, wnid = line.strip().split()
+        #         label_to_wnid[int(label)] = wnid
+        # with open(val_txt_path, 'r') as f:
+        #     for line in f:
+        #         fname, label_str = line.strip().split()
+        #         label = int(label_str)
+        #         wnid = label_to_wnid[label]
+        #         class_idx = wnid_to_idx[wnid]
+        #         path = os.path.join(val_dir, fname + '.JPEG')
+        #         self.samples.append((path, class_idx))
 
     def __len__(self):
         return len(self.samples)
@@ -576,4 +591,72 @@ class ImageNetVal(Dataset):
         img = Image.open(path).convert('RGB')
         if self.transform:
             img = self.transform(img)
-        return img, label
+            return img, label
+
+
+# import os
+# import json
+# import xml.etree.ElementTree as ET
+# from PIL import Image
+# from torch.utils.data import Dataset
+# class ImageNetValXML(Dataset):
+#     def __init__(self, img_dir, ann_dir, class_index_json, transform=None):
+#         """
+#         Args:
+#             img_dir (str): Path to the validation images.
+#             ann_dir (str): Path to the validation XML annotation files.
+#             class_index_json (str): Path to JSON file mapping WNIDs to label indices.
+#             transform (callable, optional): Transformations to apply on the image.
+#         """
+#         self.img_dir = img_dir
+#         self.ann_dir = ann_dir
+#         self.transform = transform
+#         # Load the mapping from WNID to index (0-indexed)
+#         with open(class_index_json, 'r') as f:
+#             self.wnid_to_idx = json.load(f)
+#         self.samples = []
+#         # List and sort all XML files in the annotations directory
+#         ann_files = sorted([fname for fname in os.listdir(self.ann_dir) if fname.endswith('.xml')])
+#         for ann_file in ann_files:
+#             ann_path = os.path.join(self.ann_dir, ann_file)
+#             # Parse the XML file
+#             try:
+#                 tree = ET.parse(ann_path)
+#                 root = tree.getroot()
+#             except ET.ParseError:
+#                 print(f"Skipping malformed XML: {ann_path}")
+#                 continue
+#
+#             # Get the first <object> element
+#             obj = root.find('object')
+#             if obj is None:
+#                 print(f"No object found in {ann_path}, skipping")
+#                 continue
+#             # Extract the label from the <name> tag
+#             wnid = obj.find('name').text.strip()
+#             if wnid not in self.wnid_to_idx:
+#                 print(f"WNID {wnid} not found in mapping for {ann_path}, skipping")
+#                 continue
+#             class_idx = self.wnid_to_idx[wnid]
+#
+#             # The XML file has a <filename> tag (without extension)
+#             base_name = root.find('filename').text.strip()
+#             # Construct image file path (assumes images have .JPEG extension)
+#             img_path = os.path.join(self.img_dir, base_name + '.JPEG')
+#             if not os.path.exists(img_path):
+#                 # You could also try '.jpg' if needed.
+#                 print(f"Image file not found: {img_path}, skipping")
+#                 continue
+#
+#             self.samples.append((img_path, class_idx))
+#         # (Optional) Sort samples by image filename to get consistent order
+#         self.samples.sort(key=lambda x: x[0])
+#     def __len__(self):
+#         return len(self.samples)
+#     def __getitem__(self, idx):
+#         path, label = self.samples[idx]
+#         image = Image.open(path).convert('RGB')
+#         if self.transform:
+#             image = self.transform(image)
+#         return image, label
+

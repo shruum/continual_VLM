@@ -4,7 +4,11 @@ import pandas as pd
 import json
 import torchvision
 from torchvision import datasets, transforms
+<<<<<<< Updated upstream
 from norm_datasets.utils import celeb_indicies, cif_tint, MappedImageFolder, waterbird_shortcut, ImageNetVal
+=======
+from norm_datasets.utils import celeb_indicies, cif_tint, MappedImageFolder, waterbird_shortcut, ImageNetVal, ImageNetValXML
+>>>>>>> Stashed changes
 from norm_datasets.cifar_imbalance import CIFAR10ImbalancedNoisy
 from torch.utils.data import DataLoader, ConcatDataset
 
@@ -463,6 +467,20 @@ class Imagenet1k:
             val_txt_path = os.path.join(self.data_path, '../../ImageSets/CLS-LOC/val.txt')
             ds = ImageNetVal(os.path.join(self.data_path, 'val'), val_txt_path, self.CLASS_ID, transform=self.transform_test)
         return ds
+        #train_ds = torchvision.datasets.ImageFolder(os.path.join(self.data_path, 'train'), transform=self.transform_train)
+        #with open("img_class_to_idx.json", "w") as f:
+        #   json.dump(train_ds.class_to_idx, f)
+        #   class_idx_json = 'img_class_to_idx.json'
+        # Set the directories for validation images and annotations.
+        # Adjust these paths based on your folder structure.
+        #val_img_dir = os.path.join(self.data_path, 'val')  # e.g., /scratch-nvme/ml-datasets/imagenet/ILSVRC/Data/CLS-LOC/val
+        #ann_dir = os.path.join(os.path.dirname(self.data_path), '../Annotations/CLS-LOC/val')
+        #ds = ImageNetValXML(val_img_dir, ann_dir, class_idx_json, transform=self.transform_test)
+        # Optionally, print the first few samples for a sanity check.
+        #for i in range(5):
+        #   img, label = ds[i]
+        #   print(ds.samples[i][0], "→", label)
+        #return ds
 
 DATASETS = {
     'cifar10': CIFAR10,

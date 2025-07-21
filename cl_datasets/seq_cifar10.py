@@ -24,7 +24,7 @@ class TCIFAR10(CIFAR10):
     def __init__(self, root, train=True, transform=None,
                  target_transform=None, download=False) -> None:
         self.root = root
-        super(TCIFAR10, self).__init__(root, train, transform, target_transform, download=not self._check_integrity())
+        super(TCIFAR10, self).__init__(root, train, transform, target_transform, download=False)
 
 class MyCIFAR10(CIFAR10):
     """
@@ -34,7 +34,7 @@ class MyCIFAR10(CIFAR10):
                  target_transform=None, download=False) -> None:
         self.not_aug_transform = transforms.Compose([transforms.ToTensor()])
         self.root = root
-        super(MyCIFAR10, self).__init__(root, train, transform, target_transform, download=not self._check_integrity())
+        super(MyCIFAR10, self).__init__(root, train, transform, target_transform, download=False)
 
     def __getitem__(self, index: int) -> Tuple[Image.Image, int, Image.Image]:
         """
@@ -85,13 +85,13 @@ class SequentialCIFAR10(ContinualDataset):
             [transforms.ToTensor(), self.get_normalization_transform()])
 
         train_dataset = MyCIFAR10(os.path.join(self.args.dataset_dir, 'CIFAR10'), train=True,
-                                  download=True, transform=transform)
+                                  download=False, transform=transform)
         if self.args.validation:
             train_dataset, test_dataset = get_train_val(train_dataset,
                                                     test_transform, self.NAME)
         else:
             test_dataset = TCIFAR10(os.path.join(self.args.dataset_dir, 'CIFAR10'), train=False,
-                                   download=True, transform=test_transform)
+                                   download=False, transform=test_transform)
 
         train, test = store_masked_loaders(train_dataset, test_dataset, self)
         return train, test
